@@ -147,7 +147,7 @@ class AndroidSemanticTests(unittest.TestCase):
     def test_protected_package_guard_blocks_destructive_shell_routes(self):
         for command in (
             ["am", "force-stop", "com.michaelovsky.codexapplauncher"],
-            ["pm", "clear", "com.michaelovsky.codexnvidia.isolated"],
+            ["pm", "clear", "com.michaelovsky.codexsubscription.isolated"],
             ["pm", "uninstall", "com.michaelovsky.codexsubscription.isolated"],
             ["pm", "uninstall", "com.termux"],
         ):

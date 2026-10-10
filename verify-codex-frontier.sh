@@ -10,7 +10,6 @@ PROTECTED_BASELINE="$PROJECT_ROOT/isolation/protected-preinstall-baseline.json"
 SELECTION_EVIDENCE="$PROJECT_ROOT/isolation/headless-selection-verification.json"
 RISH="/data/data/com.termux/files/home/.local/bin/rish"
 ORIGINAL_PACKAGE="com.michaelovsky.codexapplauncher"
-NVIDIA_PACKAGE="com.michaelovsky.codexnvidia.isolated"
 CODEX_PACKAGE="com.michaelovsky.codexsubscription.isolated"
 
 "$PROJECT_ROOT/isolation-preflight.sh"
@@ -49,9 +48,6 @@ battery_status=$("$PROJECT_ROOT/bin/termux-battery-status")
 grep -Fq '"present": true' <<< "$battery_status"
 curl -fsS --connect-timeout 2 --max-time 5 http://127.0.0.1:5902/codex-api/meta/methods >/dev/null
 curl -fsS --connect-timeout 2 --max-time 5 http://127.0.0.1:5900/codex-api/meta/methods >/dev/null
-# NVIDIA may be intentionally stopped by its owner. Its APK identity is verified
-# below without starting, stopping, or otherwise changing that sibling app.
-
 expected_apk_sha="$(awk 'NR==1 {print $1}' "$HASH_FILE")"
 test -n "$expected_apk_sha"
 printf '%s  %s\n' "$expected_apk_sha" "$APK" | sha256sum -c - >/dev/null
@@ -63,20 +59,18 @@ installed_fact=$("$RISH" -c "apk=\$(pm path $CODEX_PACKAGE | sed -n 's/^package:
 printf '%s\n' "$installed_fact" | grep -Fq "$expected_apk_sha"
 printf '%s\n' "$installed_fact" | grep -Fq 'versionName=2.8.0'
 
-read -r ORIGINAL_SHA256 NVIDIA_SHA256 < <(python - "$PROTECTED_BASELINE" "$ORIGINAL_PACKAGE" "$NVIDIA_PACKAGE" <<'PY'
+ORIGINAL_SHA256="$(python - "$PROTECTED_BASELINE" "$ORIGINAL_PACKAGE" <<'PY'
 import json
 import sys
 payload = json.load(open(sys.argv[1], encoding="utf-8"))
 packages = payload["packages"]
-print(packages[sys.argv[2]]["sha256"], packages[sys.argv[3]]["sha256"])
+print(packages[sys.argv[2]]["sha256"])
 PY
-)
+)"
 
-protected_facts=$("$RISH" -c 'for pkg in com.michaelovsky.codexapplauncher com.michaelovsky.codexnvidia.isolated; do apk=$(pm path "$pkg" | sed -n "s/^package://p" | head -n 1); echo "$pkg"; toybox sha256sum "$apk"; done' 2>&1)
+protected_facts=$("$RISH" -c 'pkg=com.michaelovsky.codexapplauncher; apk=$(pm path "$pkg" | sed -n "s/^package://p" | head -n 1); echo "$pkg"; toybox sha256sum "$apk"' 2>&1)
 printf '%s\n' "$protected_facts" | grep -Fq "$ORIGINAL_SHA256"
-printf '%s\n' "$protected_facts" | grep -Fq "$NVIDIA_SHA256"
 printf '%s\n' "$protected_facts" | grep -Fq "$ORIGINAL_PACKAGE"
-printf '%s\n' "$protected_facts" | grep -Fq "$NVIDIA_PACKAGE"
 
 test -s "$PROJECT_ROOT/isolation/headless-live-request.jsonl"
 python - "$PROJECT_ROOT/isolation/headless-live-request.jsonl" <<'PY'

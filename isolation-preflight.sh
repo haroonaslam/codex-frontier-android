@@ -5,10 +5,8 @@ PROJECT_ROOT="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 EXPECTED_ROOT="/data/data/com.termux/files/home/codex-subscription-isolated-app"
 CODEX_PACKAGE="com.michaelovsky.codexsubscription.isolated"
 ORIGINAL_PACKAGE="com.michaelovsky.codexapplauncher"
-NVIDIA_PACKAGE="com.michaelovsky.codexnvidia.isolated"
 GUI_PORT="5902"
 ORIGINAL_GUI_PORT="5900"
-NVIDIA_GUI_PORT="5901"
 MODEL="gpt-5.6-sol"
 LOCAL_CODEX="$PROJECT_ROOT/bin/codex"
 CODEX_ENGINE="$(readlink -f -- "$LOCAL_CODEX")"
@@ -20,9 +18,7 @@ fail() {
 
 [ "$PROJECT_ROOT" = "$EXPECTED_ROOT" ] || fail "unexpected project root"
 [ "$CODEX_PACKAGE" != "$ORIGINAL_PACKAGE" ] || fail "original package collision"
-[ "$CODEX_PACKAGE" != "$NVIDIA_PACKAGE" ] || fail "NVIDIA package collision"
 [ "$GUI_PORT" != "$ORIGINAL_GUI_PORT" ] || fail "original GUI port collision"
-[ "$GUI_PORT" != "$NVIDIA_GUI_PORT" ] || fail "NVIDIA GUI port collision"
 
 grep -Fq "package=\"$CODEX_PACKAGE\"" "$PROJECT_ROOT/AndroidManifest.xml" || fail "wrong Android package"
 grep -Fq "APP_HOME = \"$EXPECTED_ROOT\"" "$PROJECT_ROOT/src/com/michaelovsky/codexsubscription/isolated/RuntimeContract.java" || fail "wrong application root"
@@ -76,7 +72,7 @@ for file in \
   "$PROJECT_ROOT/codex-frontier-start.sh" \
   "$PROJECT_ROOT/build-codex-frontier.sh" \
   "$PROJECT_ROOT/src/com/michaelovsky/codexsubscription/isolated/MainActivity.java"; do
-  if grep -Eq 'nvidia-isolated-app|codexnvidia|nemotron|18769|model_provider|customBaseUrl|/files/home/\.codex' "$file"; then
+  if grep -Eq 'nemotron|18769|model_provider|customBaseUrl|/files/home/\.codex' "$file"; then
     fail "foreign provider or state reference in $file"
   fi
 done

@@ -31,9 +31,7 @@ class CodexFrontierConfigTests(unittest.TestCase):
         self.assertIn("/codex-subscription-isolated-app", source)
         self.assertIn("/codex-frontier-start.sh", source)
         self.assertIn("http://127.0.0.1:5902/", source)
-        self.assertNotIn("nvidia-isolated-app", source)
         self.assertNotIn("http://127.0.0.1:5900/", source)
-        self.assertNotIn("http://127.0.0.1:5901/", source)
 
     def test_native_codex_provider_and_default(self):
         config = (ROOT / "runtime/.codex/config.toml").read_text()
@@ -70,7 +68,6 @@ class CodexFrontierConfigTests(unittest.TestCase):
         identity = (ROOT / "vendor/codexapp-frontier-src/src/runtimeIdentity.ts").read_text()
         for root in (
             "/data/data/com.termux/files/home/com.michaelovsky.codexsubscription.isolated",
-            "/data/data/com.termux/files/home/nvidia-isolated-app",
         ):
             self.assertIn(root, config)
             self.assertIn(root, identity)
@@ -89,12 +86,11 @@ class CodexFrontierConfigTests(unittest.TestCase):
         self.assertEqual({item["id"] for item in documented["models"]}, EXPECTED_MODELS)
         self.assertTrue(EXPECTED_MODELS <= {item.get("slug") for item in cached["models"]})
 
-    def test_all_three_apps_are_protected_by_command_runtime(self):
+    def test_frontier_apps_are_protected_by_command_runtime(self):
         runtime = (ROOT / "bin/codex_runtime.py").read_text()
         uninstall = (ROOT / "bin/codex-uninstall").read_text()
         for package in (
             "com.michaelovsky.codexapplauncher",
-            "com.michaelovsky.codexnvidia.isolated",
             "com.michaelovsky.codexsubscription.isolated",
         ):
             self.assertIn(package, runtime)

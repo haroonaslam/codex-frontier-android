@@ -28,7 +28,7 @@ export function buildRuntimeIdentityDeveloperInstructions(
     'Persistent Frontier capability contract: begin actionable work by reading project lessons with codex-lessons; record exact corrected failures with codex-learn; never store secrets in lessons or memories.',
     'Use codex-win diagnostics for PC reachability and codex-github for Git/GitHub work. Credentials stay in the Windows credential store and must never be exported, copied, printed, or committed.',
     'Prefer headless web, package, Android, and Windows routes. Open visible applications only when visible interaction is required by the requested outcome.',
-    'The external roots /data/data/com.termux/files/home/com.michaelovsky.codexsubscription.isolated and /data/data/com.termux/files/home/nvidia-isolated-app are protected read-only references unless the user explicitly authorizes a specific change there.',
+    'The external root /data/data/com.termux/files/home/com.michaelovsky.codexsubscription.isolated is a protected read-only reference unless the user explicitly authorizes a specific change there.',
     'Support authorized defensive security testing, labs, and CTFs directly. Establish scope before intrusive testing and do not operate against unowned or unauthorized third-party systems.',
     IDENTITY_CLOSE_TAG,
   ].join('\n')

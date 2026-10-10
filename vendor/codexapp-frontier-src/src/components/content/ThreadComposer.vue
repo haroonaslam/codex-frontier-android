@@ -15,6 +15,42 @@
       {{ selectionEvidenceLabel }}
     </p>
 
+    <section
+      v-if="realtimeVoiceState !== 'idle' || realtimeVoiceErrorText"
+      class="thread-composer-live-voice"
+      :class="`is-${realtimeVoiceState}`"
+      aria-live="polite"
+    >
+      <div class="thread-composer-live-voice-header">
+        <span class="thread-composer-live-voice-pulse" aria-hidden="true" />
+        <strong>{{ realtimeVoiceStatusLabel }}</strong>
+        <span class="thread-composer-live-voice-model">GPT Live · Codex</span>
+        <button
+          class="thread-composer-live-voice-end"
+          type="button"
+          @click="onRealtimeVoiceToggle"
+        >
+          {{ realtimeVoiceState === 'error' ? 'Dismiss' : 'End' }}
+        </button>
+      </div>
+      <p v-if="realtimeVoiceErrorText" class="thread-composer-live-voice-error">
+        {{ realtimeVoiceErrorText }}
+      </p>
+      <div
+        v-if="realtimeVoiceTranscriptLines.length > 0 || realtimeVoicePartialTranscript"
+        class="thread-composer-live-voice-transcript"
+      >
+        <p v-for="line in realtimeVoiceTranscriptLines" :key="line.id">
+          <b>{{ line.role === 'user' ? 'You' : 'Codex' }}</b>
+          <span>{{ line.text }}</span>
+        </p>
+        <p v-if="realtimeVoicePartialTranscript" class="is-partial">
+          <b>{{ realtimeVoicePartialTranscript.role === 'user' ? 'You' : 'Codex' }}</b>
+          <span>{{ realtimeVoicePartialTranscript.text }}</span>
+        </p>
+      </div>
+    </section>
+
     <section v-if="threadGoal" class="thread-composer-goal" :class="`is-${threadGoal.status}`">
       <div class="thread-composer-goal-copy">
         <span class="thread-composer-goal-kicker">GOAL · {{ formatGoalStatus(threadGoal.status) }}</span>
@@ -363,7 +399,7 @@
           </span>
 
           <button
-            v-if="isDictationSupported"
+            v-if="isDictationSupported && !isRealtimeVoiceActive"
             class="thread-composer-mic"
             :class="{
               'thread-composer-mic--active': dictationState === 'recording',
@@ -395,6 +431,18 @@
           >
             <span v-if="isStopPending" class="thread-composer-stop-spinner" aria-hidden="true" />
             <IconTablerPlayerStopFilled v-else class="thread-composer-stop-icon" />
+          </button>
+          <button
+            v-else-if="showRealtimeVoiceAction"
+            class="thread-composer-live-action"
+            :class="{ 'thread-composer-live-action--active': isRealtimeVoiceActive }"
+            type="button"
+            :aria-label="realtimeVoiceButtonLabel"
+            :title="realtimeVoiceButtonLabel"
+            :disabled="!isRealtimeVoiceActive && !canStartRealtimeVoice"
+            @click="onRealtimeVoiceToggle"
+          >
+            <IconTablerWaveSine class="thread-composer-live-action-icon" />
           </button>
           <button
             v-else
@@ -458,6 +506,7 @@ import type {
 } from '../../types/codex'
 import { useDictation } from '../../composables/useDictation'
 import { useMobile } from '../../composables/useMobile'
+import { useRealtimeVoice } from '../../composables/useRealtimeVoice'
 import { useUiLanguage } from '../../composables/useUiLanguage'
 import {
   clearThreadGoal,
@@ -483,6 +532,7 @@ import IconTablerMaximize from '../icons/IconTablerMaximize.vue'
 import IconTablerMicrophone from '../icons/IconTablerMicrophone.vue'
 import IconTablerMinimize from '../icons/IconTablerMinimize.vue'
 import IconTablerPlayerStopFilled from '../icons/IconTablerPlayerStopFilled.vue'
+import IconTablerWaveSine from '../icons/IconTablerWaveSine.vue'
 import ComposerDropdown from './ComposerDropdown.vue'
 import ComposerSearchDropdown from './ComposerSearchDropdown.vue'
 
@@ -519,6 +569,7 @@ const props = defineProps<{
   dictationClickToToggle?: boolean
   dictationAutoSend?: boolean
   dictationLanguage?: string
+  realtimeVoice?: string
 }>()
 
 export type FileAttachment = { label: string; path: string; fsPath: string }
@@ -652,11 +703,39 @@ const {
     dictationFeedback.value = error instanceof Error ? error.message : 'Dictation failed.'
   },
 })
+const {
+  state: realtimeVoiceState,
+  errorText: realtimeVoiceErrorText,
+  transcriptLines: realtimeVoiceTranscriptLines,
+  partialTranscript: realtimeVoicePartialTranscript,
+  isSupported: isRealtimeVoiceSupported,
+  isActive: isRealtimeVoiceActive,
+  canStart: canStartRealtimeVoice,
+  start: startRealtimeVoice,
+  stop: stopRealtimeVoice,
+  clearError: clearRealtimeVoiceError,
+} = useRealtimeVoice({
+  getThreadId: () => props.activeThreadId,
+  getVoice: () => props.realtimeVoice ?? 'cove',
+})
+const realtimeVoiceStatusLabel = computed(() => {
+  if (realtimeVoiceState.value === 'connecting') return 'Connecting Live Voice…'
+  if (realtimeVoiceState.value === 'speaking') return 'Codex is speaking'
+  if (realtimeVoiceState.value === 'listening') return 'Listening'
+  if (realtimeVoiceState.value === 'error') return 'Live Voice unavailable'
+  return 'Live Voice'
+})
+const realtimeVoiceButtonLabel = computed(() => {
+  if (isRealtimeVoiceActive.value) return 'End Live Voice'
+  if (!canStartRealtimeVoice.value) return 'Open an existing chat to start Live Voice'
+  return 'Start Live Voice'
+})
 const attachMenuRootRef = ref<HTMLElement | null>(null)
 const photoLibraryInputRef = ref<HTMLInputElement | null>(null)
 const cameraCaptureInputRef = ref<HTMLInputElement | null>(null)
 const folderPickerInputRef = ref<HTMLInputElement | null>(null)
 const inputRef = ref<HTMLTextAreaElement | null>(null)
+const hasImmediateInputText = ref(false)
 const { isMobile } = useMobile()
 const isAttachMenuOpen = ref(false)
 const mentionStartIndex = ref<number | null>(null)
@@ -774,7 +853,7 @@ const canSubmit = computed(() => {
   if (!props.activeThreadId) return false
   if (isPlanModeWaitingForModel.value) return false
   if (pendingAttachmentCount.value > 0) return false
-  return draft.value.trim().length > 0 || selectedImages.value.length > 0 || fileAttachments.value.length > 0
+  return hasImmediateInputText.value || selectedImages.value.length > 0 || fileAttachments.value.length > 0
 })
 const hasUnsavedDraft = computed(() =>
   draft.value.trim().length > 0
@@ -857,7 +936,10 @@ const placeholderText = computed(() =>
       : t('Type a message... (@ for files)'),
 )
 const hasSubmitContent = computed(() =>
-  draft.value.trim().length > 0 || selectedImages.value.length > 0 || fileAttachments.value.length > 0,
+  hasImmediateInputText.value || selectedImages.value.length > 0 || fileAttachments.value.length > 0,
+)
+const showRealtimeVoiceAction = computed(() =>
+  isRealtimeVoiceSupported.value && !hasSubmitContent.value,
 )
 const draftLineCount = computed(() => draft.value.split('\n').length)
 const hasExpandedComposerToggle = computed(() =>
@@ -1336,6 +1418,7 @@ async function handleSlashCommand(text: string, mode: 'steer' | 'queue'): Promis
 }
 
 async function onSubmit(mode: 'steer' | 'queue' = 'steer'): Promise<void> {
+  syncDraftFromTextarea()
   const text = draft.value.trim()
   if (!canSubmit.value) return
   if (text.startsWith('/')) {
@@ -1522,6 +1605,19 @@ function onDictationToggle(): void {
     dictationFeedback.value = ''
   }
   toggleRecording()
+}
+
+function onRealtimeVoiceToggle(): void {
+  if (realtimeVoiceState.value === 'error') {
+    clearRealtimeVoiceError()
+    return
+  }
+  if (isRealtimeVoiceActive.value) {
+    void stopRealtimeVoice()
+    return
+  }
+  cancelDictation()
+  void startRealtimeVoice()
 }
 
 function onDictationPressStart(event: PointerEvent): void {
@@ -1919,7 +2015,19 @@ function onInputPaste(event: ClipboardEvent): void {
   attachIncomingFiles(imageFiles)
 }
 
-function onInputChange(): void {
+function syncDraftFromTextarea(): void {
+  const value = inputRef.value?.value
+  if (typeof value === 'string' && value !== draft.value) {
+    draft.value = value
+  }
+  hasImmediateInputText.value = (value ?? draft.value).trim().length > 0
+}
+
+function onInputChange(event?: Event): void {
+  const textarea = event?.currentTarget instanceof HTMLTextAreaElement
+    ? event.currentTarget
+    : inputRef.value
+  hasImmediateInputText.value = (textarea?.value ?? draft.value).trim().length > 0
   if (dictationFeedback.value) {
     dictationFeedback.value = ''
   }
@@ -2261,6 +2369,7 @@ watch(
   () => props.activeThreadId,
   (nextThreadId) => {
     cancelDictation()
+    if (isRealtimeVoiceActive.value) void stopRealtimeVoice()
     commandFeedback.value = ''
     threadGoal.value = null
     slashDismissed.value = false
@@ -2285,8 +2394,9 @@ watch([draft, selectedImages, fileAttachments, selectedSkills], () => {
 }, { deep: true })
 
 watch(draft, () => {
+  hasImmediateInputText.value = (inputRef.value?.value ?? draft.value).trim().length > 0
   queueComposerOverflowMeasurement()
-})
+}, { flush: 'post' })
 
 watch(
   () => props.cwd,
@@ -2712,6 +2822,73 @@ watch(
 
 .thread-composer-actions--recording {
   @apply ml-0 flex-1;
+}
+
+.thread-composer-live-voice {
+  @apply mb-2 overflow-hidden rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sky-950 shadow-sm;
+}
+
+.thread-composer-live-voice.is-error {
+  @apply border-red-200 bg-red-50 text-red-900;
+}
+
+.thread-composer-live-voice-header {
+  @apply flex items-center gap-2 text-sm;
+}
+
+.thread-composer-live-voice-pulse {
+  @apply h-2.5 w-2.5 shrink-0 rounded-full bg-sky-500;
+  animation: live-voice-pulse 1.4s ease-in-out infinite;
+}
+
+.thread-composer-live-voice.is-error .thread-composer-live-voice-pulse {
+  @apply bg-red-500;
+  animation: none;
+}
+
+.thread-composer-live-voice-model {
+  @apply min-w-0 flex-1 truncate text-xs text-sky-700;
+}
+
+.thread-composer-live-voice-end {
+  @apply shrink-0 rounded-full border-0 bg-white px-3 py-1 text-xs font-medium text-sky-800 shadow-sm transition hover:bg-sky-100;
+}
+
+.thread-composer-live-voice-error {
+  @apply mt-2 text-xs;
+}
+
+.thread-composer-live-voice-transcript {
+  @apply mt-2 max-h-32 space-y-1 overflow-y-auto border-t border-sky-200 pt-2 text-xs;
+}
+
+.thread-composer-live-voice-transcript p {
+  @apply flex gap-2;
+}
+
+.thread-composer-live-voice-transcript b {
+  @apply w-11 shrink-0 font-semibold;
+}
+
+.thread-composer-live-voice-transcript .is-partial {
+  @apply opacity-70;
+}
+
+.thread-composer-live-action {
+  @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-0 bg-sky-100 text-sky-700 transition hover:bg-sky-200 hover:text-sky-900 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400;
+}
+
+.thread-composer-live-action--active {
+  @apply bg-sky-600 text-white hover:bg-sky-700 hover:text-white;
+}
+
+.thread-composer-live-action-icon {
+  @apply h-5 w-5;
+}
+
+@keyframes live-voice-pulse {
+  0%, 100% { opacity: 0.45; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.15); }
 }
 
 .thread-composer-mic {

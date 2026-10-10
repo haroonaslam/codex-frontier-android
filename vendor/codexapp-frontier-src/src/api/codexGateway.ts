@@ -1300,6 +1300,39 @@ export function subscribeCodexNotifications(onNotification: (value: RpcNotificat
   return subscribeRpcNotifications(onNotification)
 }
 
+export type RealtimeVoiceCatalog = {
+  v1: string[]
+  v2: string[]
+  defaultV1: string
+  defaultV2: string
+}
+
+export type StartThreadRealtimeParams = {
+  threadId: string
+  clientManagedHandoffs?: boolean
+  flushTranscriptTailOnSessionEnd?: boolean
+  model?: string
+  outputModality: 'audio' | 'text'
+  includeStartupContext?: boolean
+  realtimeStartInstructions?: string
+  transport: { type: 'webrtc'; sdp: string }
+  version?: 'v1' | 'v2' | 'v3'
+  voice?: string
+}
+
+export async function listRealtimeVoices(): Promise<RealtimeVoiceCatalog> {
+  const response = await callRpc<{ voices: RealtimeVoiceCatalog }>('thread/realtime/listVoices', {})
+  return response.voices
+}
+
+export async function startThreadRealtime(params: StartThreadRealtimeParams): Promise<void> {
+  await callRpc<Record<string, never>>('thread/realtime/start', params)
+}
+
+export async function stopThreadRealtime(threadId: string): Promise<void> {
+  await callRpc<Record<string, never>>('thread/realtime/stop', { threadId })
+}
+
 export type { RpcNotification }
 
 function normalizeThreadTerminalSession(value: unknown): ThreadTerminalSession | null {

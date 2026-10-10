@@ -256,6 +256,17 @@
                 <span class="sidebar-settings-label">{{ t('Auto send dictation') }}</span>
                 <span class="sidebar-settings-toggle" :class="{ 'is-on': dictationAutoSend }" />
               </button>
+              <div class="sidebar-settings-row sidebar-settings-row--select" title="Choose the speaking voice used by GPT Live.">
+                <span class="sidebar-settings-label">Live Voice</span>
+                <ComposerDropdown
+                  class="sidebar-settings-language-dropdown"
+                  :model-value="realtimeVoice"
+                  :options="realtimeVoiceOptions"
+                  placeholder="Cove"
+                  menu-align="end"
+                  @update:model-value="onRealtimeVoiceChange"
+                />
+              </div>
               <a
                 v-if="hasVisibleFeedbackError"
                 class="sidebar-settings-row sidebar-settings-feedback-row"
@@ -598,48 +609,6 @@
               <span class="content-header-connection-label">{{ connectionStateLabel }}</span>
               <span class="content-header-connection-refresh" aria-hidden="true">↻</span>
             </button>
-            <ComposerDropdown
-              v-if="canShowTerminalToggle"
-              class="content-header-terminal-command"
-              :class="{ 'is-open': isComposerTerminalOpen }"
-              :model-value="terminalHeaderDropdownValue"
-              :options="terminalHeaderDropdownOptions"
-              :placeholder="terminalCommandPlaceholder"
-              :selected-prefix-icon="IconTablerTerminal"
-              :icon-only="true"
-              menu-align="end"
-              :empty-label="t('No commands')"
-              @update:model-value="onSelectHeaderTerminalCommand"
-            />
-            <HeaderGitBranchDropdown
-              v-if="canShowContentHeaderBranchDropdown"
-              class="content-header-branch-dropdown"
-              :current-branch="currentThreadBranch"
-              :head-sha="currentThreadHeadSha"
-              :head-subject="currentThreadHeadSubject"
-              :head-date="currentThreadHeadDate"
-              :detached="isThreadDetachedHead"
-              :dirty="isThreadWorktreeDirty"
-              :worktree-change-summary="threadWorktreeChangeSummary"
-              :branches="threadBranchOptions"
-              :commits-by-branch="threadBranchCommitsByBranch"
-              :commits-loading-for="threadBranchCommitsLoadingFor"
-              :commits-error="threadBranchCommitsError"
-              :commit-files-by-sha="threadCommitFilesBySha"
-              :commit-files-loading-for="threadCommitFilesLoadingFor"
-              :commit-files-error="threadCommitFilesError"
-              :loading="isLoadingThreadBranches"
-              :busy="isSwitchingThreadBranch"
-              :error="threadBranchError"
-              :review-open="isReviewPaneOpen"
-              :show-review="route.name === 'thread' && selectedThreadId.length > 0"
-              @toggle-review="onToggleContentHeaderReview"
-              @checkout-branch="onCheckoutContentHeaderBranch"
-              @reset-branch-to-commit="onResetContentHeaderBranchToCommit"
-              @load-commits="loadThreadBranchCommits"
-              @load-commit-files="loadThreadCommitFiles"
-              @open-commit-file="onOpenContentHeaderCommitFile"
-            />
           </template>
         </ContentHeader>
 
@@ -1017,6 +986,7 @@
                   :is-interrupting-turn="false" :send-with-enter="sendWithEnter" :in-progress-submit-mode="inProgressSendMode"
                   :dictation-click-to-toggle="dictationClickToToggle" :dictation-auto-send="dictationAutoSend"
                   :dictation-language="dictationLanguage"
+                  :realtime-voice="realtimeVoice"
                   @submit="onSubmitThreadMessage"
                   @update:selected-collaboration-mode="onSelectCollaborationMode"
                   @update:selected-model="onSelectModel"
@@ -1104,6 +1074,7 @@
                     :send-with-enter="sendWithEnter" :in-progress-submit-mode="inProgressSendMode"
                     :dictation-click-to-toggle="dictationClickToToggle" :dictation-auto-send="dictationAutoSend"
                     :dictation-language="dictationLanguage"
+                    :realtime-voice="realtimeVoice"
                     @update:selected-collaboration-mode="onSelectCollaborationMode"
                     @submit="onSubmitThreadMessage" @update:selected-model="onSelectModel"
                     @update:selected-reasoning-effort="onSelectReasoningEffort"
@@ -1240,17 +1211,16 @@ import ThreadPendingRequestPanel from './components/content/ThreadPendingRequest
 import QueuedMessages from './components/content/QueuedMessages.vue'
 import RateLimitStatus from './components/content/RateLimitStatus.vue'
 import ComposerDropdown from './components/content/ComposerDropdown.vue'
-import HeaderGitBranchDropdown from './components/content/HeaderGitBranchDropdown.vue'
 import ComposerRuntimeDropdown from './components/content/ComposerRuntimeDropdown.vue'
 import SidebarThreadControls from './components/sidebar/SidebarThreadControls.vue'
 import IconTablerBolt from './components/icons/IconTablerBolt.vue'
 import IconTablerSearch from './components/icons/IconTablerSearch.vue'
 import IconTablerSettings from './components/icons/IconTablerSettings.vue'
-import IconTablerTerminal from './components/icons/IconTablerTerminal.vue'
 import IconTablerX from './components/icons/IconTablerX.vue'
 import { useDesktopState } from './composables/useDesktopState'
 import { useMobile } from './composables/useMobile'
 import { useUiLanguage } from './composables/useUiLanguage'
+import { REALTIME_VOICES, normalizeRealtimeVoice } from './composables/useRealtimeVoice'
 import { useFeedbackDiagnostics } from './composables/useFeedbackDiagnostics'
 import {
   checkoutGitBranch,
@@ -1723,6 +1693,7 @@ const DARK_MODE_KEY = 'codex-web-local.dark-mode.v1'
 const DICTATION_CLICK_TO_TOGGLE_KEY = 'codex-web-local.dictation-click-to-toggle.v1'
 const DICTATION_AUTO_SEND_KEY = 'codex-web-local.dictation-auto-send.v1'
 const DICTATION_LANGUAGE_KEY = 'codex-web-local.dictation-language.v1'
+const REALTIME_VOICE_KEY = 'codex-web-local.realtime-voice.v1'
 
 const CHAT_WIDTH_KEY = 'codex-web-local.chat-width.v1'
 const MOBILE_RESUME_RELOAD_MIN_HIDDEN_MS = 5_000
@@ -1734,6 +1705,11 @@ const dictationClickToToggle = ref(loadBoolPref(DICTATION_CLICK_TO_TOGGLE_KEY, f
 const dictationAutoSend = ref(loadBoolPref(DICTATION_AUTO_SEND_KEY, true))
 const dictationLanguage = ref(loadDictationLanguagePref())
 const dictationLanguageOptions = computed(() => buildDictationLanguageOptions())
+const realtimeVoice = ref(loadRealtimeVoicePref())
+const realtimeVoiceOptions = REALTIME_VOICES.map((voice) => ({
+  value: voice,
+  label: voice.charAt(0).toUpperCase() + voice.slice(1),
+}))
 const projectZipProgressText = computed(() => {
   const { loaded, total } = projectZipExportStatus.value
   const loadedLabel = formatByteCount(loaded)
@@ -3218,15 +3194,6 @@ function onWindowKeyDown(event: KeyboardEvent): void {
     setSidebarCollapsed(!isSidebarCollapsed.value)
     return
   }
-  if (key === 'j' && route.name === 'thread' && selectedThreadId.value) {
-    event.preventDefault()
-    toggleComposerTerminal()
-    return
-  }
-  if (key === 'j' && isHomeRoute.value && composerCwd.value) {
-    event.preventDefault()
-    toggleComposerTerminal()
-  }
 }
 
 function toggleComposerTerminal(): void {
@@ -4663,6 +4630,17 @@ function onDictationLanguageChange(nextValue: string): void {
   const value = normalized || 'auto'
   dictationLanguage.value = value
   window.localStorage.setItem(DICTATION_LANGUAGE_KEY, value)
+}
+
+function onRealtimeVoiceChange(nextValue: string): void {
+  const voice = normalizeRealtimeVoice(nextValue)
+  realtimeVoice.value = voice
+  window.localStorage.setItem(REALTIME_VOICE_KEY, voice)
+}
+
+function loadRealtimeVoicePref(): string {
+  if (typeof window === 'undefined') return 'cove'
+  return normalizeRealtimeVoice(window.localStorage.getItem(REALTIME_VOICE_KEY))
 }
 
 function loadDictationLanguagePref(): string {

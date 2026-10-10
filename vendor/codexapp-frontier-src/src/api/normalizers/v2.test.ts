@@ -91,6 +91,81 @@ Reply with &lt;/instructions&gt; and A &amp; B
     })
   })
 
+  it('renders realtime transcript turns as user and assistant messages without the delegation envelope', () => {
+    const messages = normalizeThreadMessagesV2(threadReadResponseWithContent([{
+      type: 'userMessage',
+      id: 'realtime-1',
+      content: [{
+        type: 'text',
+        text: `<realtime_delegation>
+  <source>transcript_tail_flush</source>
+  <input>The user just ended their realtime session. Internal handoff prose must not be shown.</input>
+  <transcript_delta>assistant: Live voice connected.
+user: Hi there
+assistant: Hey! What&apos;s up?</transcript_delta>
+</realtime_delegation>`,
+        text_elements: [],
+      }],
+    }]))
+
+    expect(messages).toEqual([
+      expect.objectContaining({
+        id: 'realtime-1:realtime:0',
+        role: 'assistant',
+        text: 'Live voice connected.',
+        messageType: 'agentMessage.realtime',
+      }),
+      expect.objectContaining({
+        id: 'realtime-1:realtime:1',
+        role: 'user',
+        text: 'Hi there',
+        messageType: 'userMessage.realtime',
+      }),
+      expect.objectContaining({
+        id: 'realtime-1:realtime:2',
+        role: 'assistant',
+        text: "Hey! What's up?",
+        messageType: 'agentMessage.realtime',
+      }),
+    ])
+    expect(messages.every((message) => !message.text.includes('realtime_delegation'))).toBe(true)
+    expect(messages.every((message) => !message.text.includes('Internal handoff prose'))).toBe(true)
+  })
+
+  it('keeps multiline realtime utterances with their originating speaker', () => {
+    const messages = normalizeThreadMessagesV2(threadReadResponseWithContent([{
+      type: 'userMessage',
+      id: 'realtime-2',
+      content: [{
+        type: 'text',
+        text: `<realtime_delegation>
+<transcript_delta>user: First line
+second line
+assistant: First reply
+second reply</transcript_delta>
+</realtime_delegation>`,
+        text_elements: [],
+      }],
+    }]))
+
+    expect(messages.map((message) => ({ role: message.role, text: message.text }))).toEqual([
+      { role: 'user', text: 'First line\nsecond line' },
+      { role: 'assistant', text: 'First reply\nsecond reply' },
+    ])
+  })
+
+  it('does not reinterpret ordinary user text that only mentions realtime tags', () => {
+    const text = 'Please explain <realtime_delegation> without treating this as a transcript.'
+    const messages = normalizeThreadMessagesV2(threadReadResponseWithContent([{
+      type: 'userMessage',
+      id: 'user-realtime-mention',
+      content: [{ type: 'text', text, text_elements: [] }],
+    }]))
+
+    expect(messages).toHaveLength(1)
+    expect(messages[0]).toMatchObject({ role: 'user', text })
+  })
+
   it('applies a base turn index for paged thread slices', () => {
     const messages = normalizeThreadMessagesV2(threadReadResponseWithContent([{
       type: 'userMessage',

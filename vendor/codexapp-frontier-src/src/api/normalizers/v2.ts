@@ -93,16 +93,18 @@ function toImageGenerationUrl(value: string): string {
   return `data:image/png;base64,${compact}`
 }
 
-function decodeHeartbeatXmlText(value: string): string {
+function decodeXmlText(value: string): string {
   return value
     .replace(/&lt;/giu, '<')
     .replace(/&gt;/giu, '>')
+    .replace(/&quot;/giu, '"')
+    .replace(/&apos;/giu, "'")
     .replace(/&amp;/giu, '&')
 }
 
 function readHeartbeatField(value: string, field: string): string {
   const match = new RegExp(`<${field}>\\s*([\\s\\S]*?)\\s*</${field}>`, 'iu').exec(value)
-  return match?.[1] ? decodeHeartbeatXmlText(match[1].trim()) : ''
+  return match?.[1] ? decodeXmlText(match[1].trim()) : ''
 }
 
 function parseHeartbeatEnvelope(value: string): { automationId: string; currentTimeIso: string; instructions: string } | null {
@@ -118,6 +120,48 @@ function parseHeartbeatEnvelope(value: string): { automationId: string; currentT
   }
 }
 
+type RealtimeTranscriptEntry = {
+  role: 'user' | 'assistant'
+  text: string
+}
+
+function parseRealtimeDelegationEnvelope(value: string): RealtimeTranscriptEntry[] | null {
+  const trimmed = value.trim()
+  if (!trimmed.startsWith('<realtime_delegation>') || !trimmed.endsWith('</realtime_delegation>')) {
+    return null
+  }
+
+  const transcriptMatch = /<transcript_delta>\s*([\s\S]*?)\s*<\/transcript_delta>/iu.exec(trimmed)
+  if (!transcriptMatch?.[1]) return null
+
+  const entries: RealtimeTranscriptEntry[] = []
+  let current: RealtimeTranscriptEntry | null = null
+
+  for (const line of decodeXmlText(transcriptMatch[1]).replace(/\r\n/gu, '\n').split('\n')) {
+    const roleMatch = /^\s*(user|assistant)\s*:\s*(.*)$/iu.exec(line)
+    if (roleMatch) {
+      if (current?.text.trim()) {
+        entries.push({ ...current, text: current.text.trim() })
+      }
+      current = {
+        role: roleMatch[1]?.toLowerCase() === 'assistant' ? 'assistant' : 'user',
+        text: roleMatch[2] ?? '',
+      }
+      continue
+    }
+
+    if (current) {
+      current.text += `${current.text.length > 0 ? '\n' : ''}${line}`
+    }
+  }
+
+  if (current?.text.trim()) {
+    entries.push({ ...current, text: current.text.trim() })
+  }
+
+  return entries.length > 0 ? entries : null
+}
+
 function parseUserMessageContent(
   itemId: string,
   content: UserInput[] | undefined,
@@ -127,11 +171,12 @@ function parseUserMessageContent(
   skills: Array<{ name: string; path: string }>
   fileAttachments: UiFileAttachment[]
   rawBlocks: UiMessage[]
+  realtimeMessages: UiMessage[]
   isAutomationRun: boolean
   automationDisplayName: string | null
 } {
   if (!Array.isArray(content)) {
-    return { text: '', images: [], skills: [], fileAttachments: [], rawBlocks: [], isAutomationRun: false, automationDisplayName: null }
+    return { text: '', images: [], skills: [], fileAttachments: [], rawBlocks: [], realtimeMessages: [], isAutomationRun: false, automationDisplayName: null }
   }
 
   const textChunks: string[] = []
@@ -172,13 +217,21 @@ function parseUserMessageContent(
   const fullText = textChunks.join('\n')
   const fileAttachments = extractFileAttachments(fullText)
   const heartbeat = parseHeartbeatEnvelope(fullText)
+  const realtimeTranscript = parseRealtimeDelegationEnvelope(fullText)
+  const realtimeMessages = realtimeTranscript?.map<UiMessage>((entry, index) => ({
+    id: `${itemId}:realtime:${index}`,
+    role: entry.role,
+    text: entry.text,
+    messageType: entry.role === 'assistant' ? 'agentMessage.realtime' : 'userMessage.realtime',
+  })) ?? []
 
   return {
-    text: heartbeat?.instructions ?? extractCodexUserRequestText(fullText),
+    text: realtimeMessages.length > 0 ? '' : heartbeat?.instructions ?? extractCodexUserRequestText(fullText),
     images,
     skills,
     fileAttachments,
     rawBlocks,
+    realtimeMessages,
     isAutomationRun: heartbeat !== null,
     automationDisplayName: heartbeat?.automationId || null,
   }
@@ -430,6 +483,7 @@ function toUiMessages(item: ThreadItem): UiMessage[] {
       })
     }
 
+    messages.push(...parsed.realtimeMessages)
     messages.push(...parsed.rawBlocks)
     if (messages.length === 0) {
       return []

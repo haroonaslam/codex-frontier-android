@@ -91,7 +91,6 @@ PROTECTED_PACKAGES = {
     "com.android.packageinstaller",
     "com.google.android.permissioncontroller",
     "com.michaelovsky.codexapplauncher",
-    "com.michaelovsky.codexnvidia.isolated",
     "com.michaelovsky.codexsubscription.isolated",
     "com.termux",
     "moe.shizuku.privileged.api",
@@ -245,7 +244,6 @@ ANDROID_APP_ALIASES = {
     "chatgpt": ("com.openai.chatgpt",),
     "shizuku": ("moe.shizuku.privileged.api",),
     "termux": ("com.termux",),
-    "nvidia autonomy": ("com.michaelovsky.codexnvidia.isolated",),
     "codex frontier": ("com.michaelovsky.codexsubscription.isolated",),
     "codex": ("com.michaelovsky.codexapplauncher",),
 }

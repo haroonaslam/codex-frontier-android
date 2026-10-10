@@ -65,10 +65,60 @@ class TabletVariantTests(unittest.TestCase):
         self.assertIn("rootContainer.requestApplyInsets()", main)
         self.assertIn("--min-api 30", text("build-tablet-apk.ps1"))
 
+    def test_webview_audio_capture_has_required_android_permissions(self):
+        root = ET.fromstring(text("AndroidManifest.xml"))
+        permissions = {
+            node.attrib[ANDROID + "name"] for node in root.findall("uses-permission")
+        }
+        self.assertIn("android.permission.RECORD_AUDIO", permissions)
+        self.assertIn("android.permission.MODIFY_AUDIO_SETTINGS", permissions)
+
+    def test_live_voice_reuses_primary_composer_action(self):
+        composer = text(
+            "vendor/codexapp-frontier-src/src/components/content/ThreadComposer.vue"
+        )
+        self.assertIn('v-else-if="showRealtimeVoiceAction"', composer)
+        self.assertIn("isRealtimeVoiceSupported.value && !hasSubmitContent.value", composer)
+        self.assertIn("IconTablerWaveSine", composer)
+        self.assertNotIn("thread-composer-live-button", composer)
+        self.assertIn("hasImmediateInputText.value", composer)
+        self.assertIn("event?.currentTarget instanceof HTMLTextAreaElement", composer)
+        self.assertIn("syncDraftFromTextarea()", composer)
+
     def test_first_remembered_workspace_is_selected_after_cold_start(self):
         app = text("vendor/codexapp-frontier-src/src/App.vue")
         self.assertIn("if (!selected) {", app)
         self.assertIn("newThreadCwd.value = options[0]?.value?.trim() ?? ''", app)
+
+    def test_git_branch_control_is_not_shown_in_android_header(self):
+        app = text("vendor/codexapp-frontier-src/src/App.vue")
+        self.assertNotIn("<HeaderGitBranchDropdown", app)
+        self.assertNotIn(
+            "import HeaderGitBranchDropdown from './components/content/HeaderGitBranchDropdown.vue'",
+            app,
+        )
+
+    def test_integrated_terminal_control_is_not_shown_in_android_header(self):
+        app = text("vendor/codexapp-frontier-src/src/App.vue")
+        self.assertNotIn('class="content-header-terminal-command"', app)
+        self.assertNotIn("key === 'j'", app)
+
+    def test_legacy_external_app_integration_is_absent(self):
+        paths = (
+            "AGENTS.md",
+            "bin/codex-uninstall",
+            "bin/codex_runtime.py",
+            "isolation-preflight.sh",
+            "vendor/codexapp-frontier-src/src/runtimeIdentity.ts",
+            "verify-codex-frontier.sh",
+        )
+        combined = "\n".join(text(path).lower() for path in paths)
+        legacy_package = "com.michaelovsky.codex" + "nvidia.isolated"
+        legacy_root = "nvidia" + "-isolated-app"
+        legacy_alias = "nvidia" + " autonomy"
+        self.assertNotIn(legacy_package, combined)
+        self.assertNotIn(legacy_root, combined)
+        self.assertNotIn(legacy_alias, combined)
 
     def test_safer_codex_defaults(self):
         config = text("runtime-template/.codex/config.toml")
