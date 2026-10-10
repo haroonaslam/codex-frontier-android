@@ -1,52 +1,100 @@
 # Installation
 
-## Existing configured device
+Codex Frontier has an Android-only installation path. A PC, ADB, PRoot, API key,
+and desktop Codex installation are not required.
 
-Download `Codex-Frontier-2.8.0.apk` from the GitHub release, verify its SHA-256 is `01ea2c4e5e31bf0090c3f4ea0d2fcf1fc23cc0430b27c374c4c6a582ebf389e2`, and install it as an update. The package signature is unchanged from earlier Frontier builds.
+## Requirements
 
-The update does not launch the app during installation. On the next icon tap, the native loading surface waits for the isolated runtime and reveals the UI only after a stable visual frame is ready.
+- A 64-bit ARM Android 11 or newer device.
+- Termux and Termux:API installed from the same trusted F-Droid source.
+- A ChatGPT account whose plan includes Codex.
+- About 1.5 GB of free storage during installation.
 
-## New Android device
+The APK is the native Android shell. The installer also creates its private
+Termux backend because Android does not permit an APK to silently install files
+inside another app's sandbox.
 
-Codex Frontier uses a Termux-hosted Node/Codex runtime. A new device therefore requires:
+## One-command Android installation
 
-1. Android 6.0 or newer.
-2. Termux and Termux:API from the same trusted distribution/signing source.
-3. Termux packages: `nodejs`, `curl`, `git`, `python`, `clang`, `make`, and `pkg-config`. Android APK build tools are needed only when building the APK on-device.
-4. This repository cloned exactly to `$HOME/codex-subscription-isolated-app`.
-5. `npm ci` and `npm run build` inside `vendor/codexapp-frontier-src`.
-6. `npm ci` inside `vendor/codex-cli-frontier`, plus the official `@openai/codex@0.162.1-linux-arm64` package extracted as `node_modules/@openai/codex-linux-arm64` when npm omits it on Android.
-7. A one-time Codex login performed with this project's isolated `CODEX_HOME`.
-8. `allow-external-apps = true` in `~/.termux/termux.properties`, followed by a full Termux app restart.
-9. A one-time Android grant for `com.termux.permission.RUN_COMMAND`.
-10. Installation of the locally signed tablet APK.
-
-The user's login is created locally and is never part of the repository or APK. Android may show first-install permission or package-installer confirmation; those system security prompts cannot and should not be bypassed. This tablet variant is deliberately on-demand: it has no boot receiver or persistent watchdog.
-
-## Build from source
-
-The raw build expects an Android platform `android.jar` at `build-tools/android.jar` and local signing material under `build/`. Those files are intentionally excluded. Create your own keystore and `build/signing.properties`, then run:
+Open **Termux** and run:
 
 ```sh
-npm --prefix vendor/codexapp-frontier-src ci
-npm --prefix vendor/codexapp-frontier-src run build
-./build-codex-frontier.sh
+curl -fsSL https://raw.githubusercontent.com/haroonaslam/codex-frontier-android/main/install/install.sh | bash
 ```
 
-Changing the signing key prevents in-place updates over the official Frontier APK, which is normal Android signature enforcement.
+For users who prefer to inspect a script before running it:
 
-## Runtime start
+```sh
+curl -fLO https://raw.githubusercontent.com/haroonaslam/codex-frontier-android/main/install/install.sh
+less install.sh
+bash install.sh
+```
 
-The installed package requests Termux to execute `codex-frontier-start.sh` in the background. The script:
+The installer performs these sequenced operations:
 
-- runs the isolation preflight;
-- starts a loopback-only Android DNS/HTTPS bridge for the official Linux Codex binary;
-- validates the isolated auth/config state;
-- serializes startup with a lock;
-- reuses a healthy port 5902 runtime;
-- restarts only a PID whose exact command line, process group, and session belong to this project;
-- never opens an Android activity or browser.
+1. Installs the required Termux packages.
+2. Clones or safely fast-forwards this repository at
+   `$HOME/codex-subscription-isolated-app`.
+3. Builds the web interface locally in Termux.
+4. Installs and verifies the pinned official Codex Linux ARM64 package.
+5. Starts the ChatGPT device-code login.
+6. Hydrates and validates the authenticated Codex model catalog.
+7. Starts the loopback-only backend.
+8. Downloads the signed release APK, verifies its SHA-256, and opens Android's
+   package installer.
 
-The **Stop Codex Frontier** launcher stops the verified process group, including
-the DNS bridge, and closes the Codex Frontier Android task. Tapping the main
-launcher starts a fresh on-demand session.
+Android will require the user to approve installing an app from Termux. On the
+first app launch, approve the separate Termux command permission. Those Android
+security confirmations cannot and should not be bypassed.
+
+If OpenAI reports that device-code login is disabled, enable it in ChatGPT
+Security Settings and rerun:
+
+```sh
+cd "$HOME/codex-subscription-isolated-app"
+./install/02-login-codex.sh
+./install/03-finish-setup.sh
+```
+
+## Resuming individual stages
+
+Each stage is safe to rerun:
+
+```sh
+cd "$HOME/codex-subscription-isolated-app"
+./install/01-bootstrap-termux.sh
+./install/02-login-codex.sh
+./install/03-finish-setup.sh
+```
+
+The account credential is created only on the user's device under
+`runtime/.codex`. It is excluded from Git and from the APK.
+
+## Existing configured device
+
+An APK-only update is sufficient when the matching Termux backend is already
+installed. Download `Codex-Frontier-2.8.0-tablet.1.apk` from the GitHub Release,
+open it, and approve the Android update. App data, Codex login, conversations,
+workspace, and skills remain in place.
+
+## On-demand runtime
+
+The main **Codex Frontier** launcher starts the backend and opens the interface.
+The separate **Stop Codex Frontier** launcher stops its verified process group
+and closes the Android task. There is no boot receiver, persistent watchdog,
+wake lock, or always-running background service.
+
+## Developer build
+
+Generated UI bundles, APKs, credentials, signing keys, and device state are
+intentionally excluded from Git. Building the signed APK requires Android SDK
+35, Build Tools 36.1.0, JDK 21, and the original local signing keystore:
+
+```powershell
+npm --prefix vendor/codexapp-frontier-src ci
+npm --prefix vendor/codexapp-frontier-src run build
+./build-tablet-apk.ps1
+```
+
+Keep the keystore private and backed up. A different key cannot update an
+existing installation because Android enforces signing-key continuity.

@@ -1,0 +1,12 @@
+{
+  "versionName": "2.8.0-tablet.1",
+  "versionCode": 12,
+  "tag": "v2.8.0-tablet.1",
+  "packageId": "com.michaelovsky.codexsubscription.isolated",
+  "codexCliVersion": "0.162.1",
+  "apk": {
+    "asset": "Codex-Frontier-2.8.0-tablet.1.apk",
+    "sha256": "3d2355cd1e5551c381ebc31e4cf69f1a724fa0f7b92ba28986643f6b2b60f71f",
+    "url": "https://github.com/haroonaslam/codex-frontier-android/releases/download/v2.8.0-tablet.1/Codex-Frontier-2.8.0-tablet.1.apk"
+  }
+}
