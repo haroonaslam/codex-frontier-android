@@ -311,7 +311,7 @@ public final class MainActivity extends Activity {
 
     private void startRuntimeWatchdog(String reason) {
         try {
-            RuntimeContract.startWatchdog(this, reason);
+            RuntimeContract.requestRuntimeStart(this);
         } catch (RuntimeException ignored) { }
     }
 
@@ -481,6 +481,17 @@ public final class MainActivity extends Activity {
             startRuntimeWatchdog("activity-resumed");
             if (!guiLoaded && !runtimePageLoading) waitForRuntimeOnce();
             else if (guiLoaded) verifyRuntimeAfterResume();
+        }
+    }
+
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (!destroyed
+                && checkSelfPermission("com.termux.permission.RUN_COMMAND") == PackageManager.PERMISSION_GRANTED) {
+            startRuntimeWatchdog("launcher-intent");
+            if (!guiLoaded && !runtimePageLoading) waitForRuntimeOnce();
+            else verifyRuntimeAfterResume();
         }
     }
 

@@ -10,7 +10,7 @@ GUI_PORT="5902"
 ORIGINAL_GUI_PORT="5900"
 NVIDIA_GUI_PORT="5901"
 MODEL="gpt-5.6-sol"
-LOCAL_CODEX="$PROJECT_ROOT/vendor/codex-cli-frontier/node_modules/.bin/codex"
+LOCAL_CODEX="$PROJECT_ROOT/bin/codex"
 CODEX_ENGINE="$(readlink -f -- "$LOCAL_CODEX")"
 
 fail() {
@@ -27,6 +27,7 @@ fail() {
 grep -Fq "package=\"$CODEX_PACKAGE\"" "$PROJECT_ROOT/AndroidManifest.xml" || fail "wrong Android package"
 grep -Fq "APP_HOME = \"$EXPECTED_ROOT\"" "$PROJECT_ROOT/src/com/michaelovsky/codexsubscription/isolated/RuntimeContract.java" || fail "wrong application root"
 grep -Fq 'START_SCRIPT = APP_HOME + "/codex-frontier-start.sh"' "$PROJECT_ROOT/src/com/michaelovsky/codexsubscription/isolated/RuntimeContract.java" || fail "wrong launcher path"
+grep -Fq 'STOP_SCRIPT = APP_HOME + "/codex-frontier-stop.sh"' "$PROJECT_ROOT/src/com/michaelovsky/codexsubscription/isolated/RuntimeContract.java" || fail "wrong stop path"
 grep -Fq 'RUN_COMMAND_WORKDIR", APP_HOME' "$PROJECT_ROOT/src/com/michaelovsky/codexsubscription/isolated/RuntimeContract.java" || fail "wrong launcher workdir"
 grep -Fq "PORT=$GUI_PORT" "$PROJECT_ROOT/codex-frontier-start.sh" || fail "wrong GUI port"
 grep -Fq 'HOME="$ISOLATED_HOME"' "$PROJECT_ROOT/codex-frontier-start.sh" || fail "HOME is not isolated"
@@ -58,11 +59,17 @@ PY
 
 test -s "$PROJECT_ROOT/vendor/codexapp-frontier-src/dist-cli/index.js" || fail "project web runtime is missing"
 test -x "$LOCAL_CODEX" || fail "project-local Codex CLI is missing"
-test "$(HOME="$PROJECT_ROOT/runtime/home" CODEX_HOME="$PROJECT_ROOT/runtime/.codex" "$LOCAL_CODEX" --version)" = "codex-cli 0.144.6" || fail "wrong project-local Codex CLI version"
+grep -Fq '/data/data/com.termux/files/usr/bin/node' "$LOCAL_CODEX" || fail "Codex launcher is not Termux-native"
+test "$(HOME="$PROJECT_ROOT/runtime/home" CODEX_HOME="$PROJECT_ROOT/runtime/.codex" "$LOCAL_CODEX" --version)" = "codex-cli 0.162.1" || fail "wrong project-local Codex CLI version"
 test -x "$PROJECT_ROOT/build-codex-frontier.sh" || fail "build script is missing"
-test -x "$PROJECT_ROOT/vendor/termux-api-client/build-project-client.sh" || fail "Termux API builder is missing"
-test -x "$PROJECT_ROOT/vendor/termux-api-client/runtime/libexec/termux-api-broadcast" || fail "Termux API client is missing"
-test "$(find "$PROJECT_ROOT/bin" -maxdepth 1 -type l -name 'termux-*' | wc -l)" -eq 57 || fail "Termux API command set is incomplete"
+test -x "$PROJECT_ROOT/codex-frontier-stop.sh" || fail "stop script is missing"
+test -x "$PROJECT_ROOT/codex-frontier-runtime.sh" || fail "runtime wrapper is missing"
+test -x "$PROJECT_ROOT/bin/termux-connect-proxy.mjs" || fail "Termux DNS bridge is missing"
+grep -Fq 'server.listen(port, host' "$PROJECT_ROOT/bin/termux-connect-proxy.mjs" || fail "Termux DNS bridge bind is unexpected"
+grep -Fq 'const host = "127.0.0.1"' "$PROJECT_ROOT/bin/termux-connect-proxy.mjs" || fail "Termux DNS bridge is not loopback-only"
+grep -Fq "server.listen(port, '127.0.0.1')" "$PROJECT_ROOT/vendor/codexapp-frontier-src/src/cli/index.ts" || fail "server is not loopback-only"
+grep -Fq 'approval_policy = "on-request"' "$PROJECT_ROOT/runtime/.codex/config.toml" || fail "approval policy is not on-request"
+grep -Fq 'sandbox_mode = "workspace-write"' "$PROJECT_ROOT/runtime/.codex/config.toml" || fail "sandbox mode is not workspace-write"
 
 for file in \
   "$PROJECT_ROOT/AndroidManifest.xml" \

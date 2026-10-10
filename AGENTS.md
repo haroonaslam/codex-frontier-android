@@ -14,7 +14,7 @@ This repository belongs only to the independent Codex Frontier Android applicati
 
 All writable HOME, CODEX_HOME, workspace, sessions, memories, logs, plugins, skills, models, build output, APKs, and signing material must remain below this repository. Shared Termux, Node, Java, Android SDK, Shizuku, and Codex executables may be invoked as read-only dependencies but must never be patched by this project.
 
-The active web runtime is `vendor/codexapp-frontier-src/dist-cli/index.js`. The active Codex executable is the project-local `vendor/codex-cli-frontier/node_modules/.bin/codex` at version 0.144.6. Never replace it with, update, or configure the shared global Codex installation.
+The active web runtime is `vendor/codexapp-frontier-src/dist-cli/index.js`. The active Codex executable is the project-local `vendor/codex-cli-frontier/node_modules/.bin/codex` at version 0.162.1. Never replace it with, update, or configure the shared global Codex installation.
 
 The subscription credential is an independent file snapshot at `runtime/.codex/auth.json`. It may refresh only that file. Never symlink it, replace the original `$HOME/.codex/auth.json`, create an API key, or enable a custom provider endpoint. Model availability is determined by the live authenticated Codex model catalog, not an API catalog.
 
@@ -27,7 +27,7 @@ For every future change:
 3. Keep package ID, port, HOME, CODEX_HOME, and workspace isolated.
 4. Build and install only `com.michaelovsky.codexsubscription.isolated`.
 5. If this project runtime must be restarted, target only a PID whose full command line contains this exact project root or port 5902; never use a broad process pattern.
-6. Keep `RuntimeWatchdogService`, `BootReceiver`, and `codex-frontier-start.sh` headless; never launch `MainActivity` as a build or verification step.
+6. Keep `codex-frontier-start.sh` and `codex-frontier-stop.sh` headless. This tablet variant deliberately has no boot receiver, watchdog service, wake lock, or persistent Android background service.
 7. Preserve durable `/goal` RPC support and the source-level slash-command tests.
 8. Run `./verify-codex-frontier.sh` without opening the Android UI.
 9. Recheck both protected APK hashes, running processes, and ports.

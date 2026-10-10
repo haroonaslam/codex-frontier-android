@@ -12,15 +12,16 @@ Codex Frontier uses a Termux-hosted Node/Codex runtime. A new device therefore r
 
 1. Android 6.0 or newer.
 2. Termux and Termux:API from the same trusted distribution/signing source.
-3. Termux packages: `nodejs`, `openjdk-21`, `aapt`, `apksigner`, `d8`, `curl`, and `git`.
+3. Termux packages: `nodejs`, `curl`, `git`, `python`, `clang`, `make`, and `pkg-config`. Android APK build tools are needed only when building the APK on-device.
 4. This repository cloned exactly to `$HOME/codex-subscription-isolated-app`.
 5. `npm ci` and `npm run build` inside `vendor/codexapp-frontier-src`.
-6. `npm ci` inside `vendor/codex-cli-frontier`, plus the official `@openai/codex@0.144.6-linux-arm64` optional package when npm omits it on Android.
+6. `npm ci` inside `vendor/codex-cli-frontier`, plus the official `@openai/codex@0.162.1-linux-arm64` package extracted as `node_modules/@openai/codex-linux-arm64` when npm omits it on Android.
 7. A one-time Codex login performed with this project's isolated `CODEX_HOME`.
-8. A one-time Android grant for `com.termux.permission.RUN_COMMAND`.
-9. Installation of the signed release APK.
+8. `allow-external-apps = true` in `~/.termux/termux.properties`, followed by a full Termux app restart.
+9. A one-time Android grant for `com.termux.permission.RUN_COMMAND`.
+10. Installation of the locally signed tablet APK.
 
-The user's login is created locally and is never part of the repository or APK. Android may show first-install permission or package-installer confirmation; those system security prompts cannot and should not be bypassed. After setup, reboot recovery is headless and does not open the app or Termux.
+The user's login is created locally and is never part of the repository or APK. Android may show first-install permission or package-installer confirmation; those system security prompts cannot and should not be bypassed. This tablet variant is deliberately on-demand: it has no boot receiver or persistent watchdog.
 
 ## Build from source
 
@@ -39,8 +40,13 @@ Changing the signing key prevents in-place updates over the official Frontier AP
 The installed package requests Termux to execute `codex-frontier-start.sh` in the background. The script:
 
 - runs the isolation preflight;
+- starts a loopback-only Android DNS/HTTPS bridge for the official Linux Codex binary;
 - validates the isolated auth/config state;
 - serializes startup with a lock;
 - reuses a healthy port 5902 runtime;
 - restarts only a PID whose exact command line, process group, and session belong to this project;
 - never opens an Android activity or browser.
+
+The **Stop Codex Frontier** launcher stops the verified process group, including
+the DNS bridge, and closes the Codex Frontier Android task. Tapping the main
+launcher starts a fresh on-demand session.

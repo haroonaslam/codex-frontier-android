@@ -1,9 +1,7 @@
 package com.michaelovsky.codexsubscription.isolated;
 
-import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
 
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -18,39 +16,38 @@ import org.json.JSONObject;
 final class RuntimeContract {
     static final String APP_HOME = "/data/data/com.termux/files/home/codex-subscription-isolated-app";
     static final String START_SCRIPT = APP_HOME + "/codex-frontier-start.sh";
+    static final String STOP_SCRIPT = APP_HOME + "/codex-frontier-stop.sh";
     static final String WEB_URL = "http://127.0.0.1:5902/";
     static final String HEALTH_URL = WEB_URL + "codex-api/meta/methods";
     static final String COMPLETION_EVENTS_URL = WEB_URL + "codex-api/frontier-completion-events";
     static final String TERMUX_PACKAGE = "com.termux";
     static final String TERMUX_SERVICE = "com.termux.app.RunCommandService";
-    static final String ACTION_CHECK_NOW = "com.michaelovsky.codexsubscription.isolated.CHECK_NOW";
-    static final String EXTRA_REASON = "watchdogReason";
-
     private RuntimeContract() { }
 
-    static Intent createTermuxStartIntent(PendingIntent resultIntent) {
+    private static Intent createTermuxCommandIntent(String path, String label, String description) {
         Intent command = new Intent("com.termux.RUN_COMMAND");
         command.setClassName(TERMUX_PACKAGE, TERMUX_SERVICE);
-        command.putExtra("com.termux.RUN_COMMAND_PATH", START_SCRIPT);
+        command.putExtra("com.termux.RUN_COMMAND_PATH", path);
         command.putExtra("com.termux.RUN_COMMAND_WORKDIR", APP_HOME);
         command.putExtra("com.termux.RUN_COMMAND_BACKGROUND", true);
         command.putExtra("com.termux.RUN_COMMAND_SESSION_ACTION", "0");
-        command.putExtra("com.termux.RUN_COMMAND_LABEL", "Codex Frontier runtime");
-        command.putExtra("com.termux.RUN_COMMAND_DESCRIPTION", "Starts the isolated Codex Frontier runtime on port 5902.");
-        if (resultIntent != null) {
-            command.putExtra("com.termux.RUN_COMMAND_PENDING_INTENT", resultIntent);
-        }
+        command.putExtra("com.termux.RUN_COMMAND_LABEL", label);
+        command.putExtra("com.termux.RUN_COMMAND_DESCRIPTION", description);
         return command;
     }
 
-    static void startWatchdog(Context context, String reason) {
-        Intent service = new Intent(context, RuntimeWatchdogService.class);
-        service.putExtra(EXTRA_REASON, reason == null ? "unspecified" : reason);
-        if (Build.VERSION.SDK_INT >= 26) {
-            context.startForegroundService(service);
-        } else {
-            context.startService(service);
-        }
+    static void requestRuntimeStart(Context context) {
+        context.startService(createTermuxCommandIntent(
+                START_SCRIPT,
+                "Codex Frontier runtime",
+                "Starts the isolated Codex Frontier runtime on loopback port 5902."));
+    }
+
+    static void requestRuntimeStop(Context context) {
+        context.startService(createTermuxCommandIntent(
+                STOP_SCRIPT,
+                "Stop Codex Frontier",
+                "Stops only the verified isolated Codex Frontier runtime."));
     }
 
     static boolean runtimeIsReady() {

@@ -1,0 +1,7 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -eu
+
+APP_HOME="/data/data/com.termux/files/home/codex-subscription-isolated-app"
+CODEX_JS="$APP_HOME/vendor/codex-cli-frontier/node_modules/@openai/codex/bin/codex.js"
+
+exec /data/data/com.termux/files/usr/bin/node "$CODEX_JS" "$@"
