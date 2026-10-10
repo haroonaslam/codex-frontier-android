@@ -55,7 +55,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Java compilation failed' }
 $classesJar = Join-Path $work 'classes.jar'
 & $jar cf $classesJar -C (Join-Path $work 'classes') .
 if ($LASTEXITCODE -ne 0) { throw 'Class archive creation failed' }
-& $d8 --lib $platformJar --min-api 23 --output (Join-Path $work 'dex') $classesJar
+& $d8 --lib $platformJar --min-api 30 --output (Join-Path $work 'dex') $classesJar
 if ($LASTEXITCODE -ne 0) { throw 'DEX compilation failed' }
 
 $unsigned = Join-Path $work 'unsigned.apk'

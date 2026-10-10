@@ -54,6 +54,17 @@ class TabletVariantTests(unittest.TestCase):
         self.assertIn("onNewIntent(Intent intent)", main)
         self.assertIn('startRuntimeWatchdog("launcher-intent")', main)
 
+    def test_android_11_safe_area_insets_protect_webview(self):
+        root = ET.fromstring(text("AndroidManifest.xml"))
+        uses_sdk = root.find("uses-sdk")
+        self.assertEqual(uses_sdk.attrib[ANDROID + "minSdkVersion"], "30")
+        main = text("src/com/michaelovsky/codexsubscription/isolated/MainActivity.java")
+        self.assertIn("setOnApplyWindowInsetsListener", main)
+        self.assertIn("WindowInsets.Type.systemBars()", main)
+        self.assertIn("WindowInsets.Type.displayCutout()", main)
+        self.assertIn("rootContainer.requestApplyInsets()", main)
+        self.assertIn("--min-api 30", text("build-tablet-apk.ps1"))
+
     def test_safer_codex_defaults(self):
         config = text("runtime-template/.codex/config.toml")
         self.assertIn('model = "gpt-5.6-sol"', config)

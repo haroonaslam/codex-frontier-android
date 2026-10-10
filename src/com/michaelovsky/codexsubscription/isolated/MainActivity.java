@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.Insets;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -18,6 +19,7 @@ import android.view.MotionEvent;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowInsets;
 import android.view.WindowManager;
 import android.webkit.DownloadListener;
 import android.webkit.PermissionRequest;
@@ -67,6 +69,14 @@ public final class MainActivity extends Activity {
 
         rootContainer = new FrameLayout(this);
         rootContainer.setBackgroundColor(Color.rgb(5, 8, 23));
+        rootContainer.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
+            @Override public WindowInsets onApplyWindowInsets(View view, WindowInsets windowInsets) {
+                Insets safeArea = windowInsets.getInsets(
+                        WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
+                view.setPadding(safeArea.left, safeArea.top, safeArea.right, safeArea.bottom);
+                return windowInsets;
+            }
+        });
 
         webView = new WebView(this);
         webView.setBackgroundColor(Color.rgb(5, 8, 23));
@@ -238,6 +248,7 @@ public final class MainActivity extends Activity {
         rootContainer.addView(webView, fill);
         rootContainer.addView(loadingOverlay, fill);
         setContentView(rootContainer);
+        rootContainer.requestApplyInsets();
         showStartingPage("CODEX FRONTIER\n\nPreparing your private workspace…");
         ensureTermuxPermission();
         waitForRuntimeOnce();
