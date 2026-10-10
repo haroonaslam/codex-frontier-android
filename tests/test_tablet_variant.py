@@ -65,6 +65,11 @@ class TabletVariantTests(unittest.TestCase):
         self.assertIn("rootContainer.requestApplyInsets()", main)
         self.assertIn("--min-api 30", text("build-tablet-apk.ps1"))
 
+    def test_first_remembered_workspace_is_selected_after_cold_start(self):
+        app = text("vendor/codexapp-frontier-src/src/App.vue")
+        self.assertIn("if (!selected) {", app)
+        self.assertIn("newThreadCwd.value = options[0]?.value?.trim() ?? ''", app)
+
     def test_safer_codex_defaults(self):
         config = text("runtime-template/.codex/config.toml")
         self.assertIn('model = "gpt-5.6-sol"', config)

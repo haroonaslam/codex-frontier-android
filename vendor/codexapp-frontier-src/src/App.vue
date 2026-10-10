@@ -4894,11 +4894,14 @@ watch(
       return
     }
     const selected = newThreadCwd.value.trim()
-    if (selected) {
-      const hasSelected = options.some((option) => option.value === selected)
-      if (!hasSelected) {
-        newThreadCwd.value = ''
-      }
+    if (!selected) {
+      newThreadCwd.value = options[0]?.value?.trim() ?? ''
+      void refreshDefaultProjectName()
+      return
+    }
+    const hasSelected = options.some((option) => option.value === selected)
+    if (!hasSelected) {
+      newThreadCwd.value = options[0]?.value?.trim() ?? ''
     }
     void refreshDefaultProjectName()
   },
