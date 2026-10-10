@@ -4,6 +4,6 @@
   "private": true,
   "description": "Project-local Codex CLI for the isolated Codex Frontier Android runtime.",
   "dependencies": {
-    "@openai/codex": "0.144.6"
+    "@openai/codex": "0.162.1"
   }
 }

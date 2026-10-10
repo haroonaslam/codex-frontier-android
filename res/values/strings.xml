@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Codex Frontier</string>
+    <string name="stop_app_name">Stop Codex Frontier</string>
 </resources>

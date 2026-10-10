@@ -8,6 +8,7 @@ ISOLATED_WORKSPACE="$APP_HOME/workspace"
 ISOLATED_HOME="$APP_HOME/runtime/home"
 LOCAL_CODEX_BIN="$APP_HOME/vendor/codex-cli-frontier/node_modules/.bin"
 RUNTIME_ENTRY="$APP_HOME/vendor/codexapp-frontier-src/dist-cli/index.js"
+RUNTIME_WRAPPER="$APP_HOME/codex-frontier-runtime.sh"
 PORT=5902
 LOG_DIR="$ISOLATED_CODEX_ROOT/logs"
 RUN_DIR="$ISOLATED_CODEX_ROOT/run"
@@ -16,6 +17,11 @@ LOCK_FILE="$RUN_DIR/start.lock"
 STATE_FILE="$RUN_DIR/runtime-state.json"
 
 export PATH="$APP_HOME/bin:$LOCAL_CODEX_BIN:/data/data/com.termux/files/usr/bin:$TERMUX_HOME/.local/bin:$PATH"
+
+mkdir -p "$LOG_DIR" "$RUN_DIR"
+exec >> "$LOG_DIR/launcher.log" 2>&1
+printf '%s invoked pid=%s parent=%s\n' \
+  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$$" "$PPID"
 
 health_ready() {
   curl -fsS --connect-timeout 1 --max-time 2 \
@@ -135,15 +141,15 @@ setsid env \
   CODEXAPP_GUI_OWNER_MODE="codex-frontier" \
   NODE_ENV="production" \
   PATH="$PATH" \
-  /data/data/com.termux/files/usr/bin/node \
+  "$RUNTIME_WRAPPER" \
   "$RUNTIME_ENTRY" \
   "$ISOLATED_WORKSPACE" \
   -p "$PORT" \
   --no-open \
   --no-login \
   --no-tunnel \
-  --approval-policy never \
-  --sandbox-mode danger-full-access \
+  --approval-policy on-request \
+  --sandbox-mode workspace-write \
   >> "$LOG_DIR/codex-web.log" 2>&1 </dev/null &
 runtime_pid=$!
 printf '%s\n' "$runtime_pid" > "$PID_FILE"
