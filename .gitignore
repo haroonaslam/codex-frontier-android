@@ -1,6 +1,6 @@
 # Private runtime and user data
 /runtime/
-/workspace/
+/workspace
 
 # Signing and local Android SDK inputs
 build/
