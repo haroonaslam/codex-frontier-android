@@ -29,6 +29,7 @@ class AndroidInstallerTests(unittest.TestCase):
         self.assertIn("CODEX_NATIVE_INTEGRITY=", script)
         self.assertIn("npm --prefix vendor/codexapp-frontier-src run build", script)
         self.assertIn("status --porcelain --untracked-files=all", script)
+        self.assertIn("config --add remote.origin.fetch", script)
         self.assertIn("fetch origin main:refs/remotes/origin/main", script)
         self.assertIn("switch main", script)
         self.assertIn("merge --ff-only origin/main", script)
