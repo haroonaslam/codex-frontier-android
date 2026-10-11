@@ -8,7 +8,8 @@ LEGACY_WORKSPACE="$APP_HOME/workspace"
 INSTRUCTIONS_TEMPLATE="$APP_HOME/runtime-template/workspace/AGENTS.md"
 CODEX_CONFIG="$APP_HOME/runtime/.codex/config.toml"
 GLOBAL_INSTRUCTIONS_TEMPLATE="$APP_HOME/runtime-template/.codex/AGENTS.md"
-GLOBAL_INSTRUCTIONS="$APP_HOME/runtime/.codex/AGENTS.md"
+GLOBAL_INSTRUCTIONS="$APP_HOME/runtime/.codex/skills/AGENTS.md"
+GLOBAL_INSTRUCTIONS_LINK="$APP_HOME/runtime/.codex/AGENTS.md"
 DEVELOPMENT_TEMPLATE="$APP_HOME/DEVELOPMENT.md"
 EDITABLE_DEVELOPMENT="$APP_HOME/runtime/.codex/DEVELOPMENT.md"
 LEGACY_PROJECT_HEADER='[projects."/data/data/com.termux/files/home/codex-subscription-isolated-app/workspace"]'
@@ -35,6 +36,7 @@ fi
 
 mkdir -p "$USER_WORKSPACE"
 mkdir -p "$APP_HOME/runtime/.codex"
+mkdir -p "$APP_HOME/runtime/.codex/skills"
 
 if [ ! -e "$LEGACY_WORKSPACE" ]; then
   ln -s "$USER_WORKSPACE" "$LEGACY_WORKSPACE"
@@ -55,17 +57,14 @@ if [ ! -e "$USER_WORKSPACE/AGENTS.md" ]; then
   cp "$INSTRUCTIONS_TEMPLATE" "$USER_WORKSPACE/AGENTS.md"
 fi
 
-if [ -L "$GLOBAL_INSTRUCTIONS" ]; then
-  global_instructions_migration="$APP_HOME/runtime/.codex/.AGENTS.md.migration"
-  if [ -s "$GLOBAL_INSTRUCTIONS" ]; then
-    cp -L "$GLOBAL_INSTRUCTIONS" "$global_instructions_migration"
-  else
-    cp "$GLOBAL_INSTRUCTIONS_TEMPLATE" "$global_instructions_migration"
-  fi
-  rm "$GLOBAL_INSTRUCTIONS"
-  mv "$global_instructions_migration" "$GLOBAL_INSTRUCTIONS"
-elif [ ! -s "$GLOBAL_INSTRUCTIONS" ]; then
+if [ -s "$GLOBAL_INSTRUCTIONS_LINK" ] && [ ! -L "$GLOBAL_INSTRUCTIONS_LINK" ]; then
+  cp "$GLOBAL_INSTRUCTIONS_LINK" "$GLOBAL_INSTRUCTIONS"
+fi
+if [ ! -s "$GLOBAL_INSTRUCTIONS" ]; then
   cp "$GLOBAL_INSTRUCTIONS_TEMPLATE" "$GLOBAL_INSTRUCTIONS"
+fi
+if [ ! -e "$GLOBAL_INSTRUCTIONS_LINK" ] && [ ! -L "$GLOBAL_INSTRUCTIONS_LINK" ]; then
+  ln -s "skills/AGENTS.md" "$GLOBAL_INSTRUCTIONS_LINK"
 fi
 
 # The viewer/editor uses an untracked runtime copy so personal notes never make

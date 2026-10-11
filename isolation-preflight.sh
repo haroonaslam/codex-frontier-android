@@ -71,7 +71,7 @@ grep -Fq 'approval_policy = "on-request"' "$PROJECT_ROOT/runtime/.codex/config.t
 grep -Fq 'sandbox_mode = "workspace-write"' "$PROJECT_ROOT/runtime/.codex/config.toml" || fail "sandbox mode is not workspace-write"
 grep -Fq "[projects.\"$USER_WORKSPACE\"]" "$PROJECT_ROOT/runtime/.codex/config.toml" || fail "external workspace is not trusted"
 test -f "$USER_WORKSPACE/AGENTS.md" || fail "workspace instructions are missing"
-test -f "$PROJECT_ROOT/runtime/.codex/AGENTS.md" || fail "global instructions are missing"
+test -f "$PROJECT_ROOT/runtime/.codex/skills/AGENTS.md" || fail "global instructions are missing"
 test -f "$PROJECT_ROOT/runtime/.codex/DEVELOPMENT.md" || fail "editable development reference is missing"
 test -L "$PROJECT_ROOT/workspace" || fail "legacy workspace compatibility link is missing"
 test "$(readlink -f -- "$PROJECT_ROOT/workspace")" = "$USER_WORKSPACE" || fail "legacy workspace compatibility link is unexpected"

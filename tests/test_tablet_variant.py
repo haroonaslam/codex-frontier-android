@@ -103,7 +103,7 @@ class TabletVariantTests(unittest.TestCase):
         self.assertIn('USER_WORKSPACE="$TERMUX_HOME/codex-workspace"', setup)
         self.assertIn('ln -s "$USER_WORKSPACE" "$LEGACY_WORKSPACE"', setup)
         self.assertIn('EDITABLE_DEVELOPMENT="$APP_HOME/runtime/.codex/DEVELOPMENT.md"', setup)
-        self.assertIn('GLOBAL_INSTRUCTIONS="$APP_HOME/runtime/.codex/AGENTS.md"', setup)
+        self.assertIn('GLOBAL_INSTRUCTIONS="$APP_HOME/runtime/.codex/skills/AGENTS.md"', setup)
         self.assertTrue((ROOT / "runtime-template/.codex/AGENTS.md").is_file())
         self.assertTrue((ROOT / "runtime-template/workspace/AGENTS.md").is_file())
 

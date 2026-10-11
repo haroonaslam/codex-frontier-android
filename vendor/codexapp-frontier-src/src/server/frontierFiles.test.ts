@@ -11,7 +11,7 @@ async function fixture(): Promise<string> {
   await mkdir(join(codexHome, 'skills', 'demo'), { recursive: true })
   await mkdir(join(codexHome, 'memory'), { recursive: true })
   await mkdir(join(codexHome, 'memories'), { recursive: true })
-  await writeFile(join(codexHome, 'AGENTS.md'), '# Global instructions\n', 'utf8')
+  await writeFile(join(codexHome, 'skills', 'AGENTS.md'), '# Global instructions\n', 'utf8')
   await mkdir(join(fixtureHome, 'codex-workspace'), { recursive: true })
   await writeFile(join(fixtureHome, 'codex-workspace', 'AGENTS.md'), '# Instructions\n', 'utf8')
   await writeFile(join(codexHome, 'DEVELOPMENT.md'), '# Development\n', 'utf8')

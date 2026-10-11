@@ -43,7 +43,7 @@ export function getFrontierFileRoots(codexHomeOverride?: string): FrontierFileRo
       label: 'Global instructions',
       description: 'AGENTS.md applied across every project',
       kind: 'file',
-      path: resolve(codexHome, 'AGENTS.md'),
+      path: resolve(codexHome, 'skills', 'AGENTS.md'),
     },
     {
       id: 'workspaceInstructions',
