@@ -68,6 +68,7 @@ class AndroidInstallerTests(unittest.TestCase):
     def test_finish_downloads_verifies_and_opens_apk_on_android(self) -> None:
         script = self.text("install/03-finish-setup.sh")
         self.assertIn("release-manifest.json", script)
+        self.assertIn("tests.test_android_installer", script)
         self.assertIn("sha256sum", script)
         self.assertIn("termux-open --view", script)
         self.assertNotIn("adb ", script)

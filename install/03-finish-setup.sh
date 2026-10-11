@@ -13,7 +13,10 @@ fail() {
 cd "$APP_HOME"
 
 ./isolation-preflight.sh
-PYTHONDONTWRITEBYTECODE=1 python -m unittest tests.test_android_semantic tests.test_tablet_variant
+PYTHONDONTWRITEBYTECODE=1 python -m unittest \
+  tests.test_android_installer \
+  tests.test_android_semantic \
+  tests.test_tablet_variant
 ./codex-frontier-stop.sh >/dev/null 2>&1 || true
 ./codex-frontier-start.sh
 
