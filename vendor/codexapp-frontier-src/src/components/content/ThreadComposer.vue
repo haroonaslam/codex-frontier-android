@@ -245,6 +245,8 @@
           :placeholder="placeholderText"
           :disabled="isInteractionDisabled"
           @input="onInputChange"
+          @compositionupdate="onInputChange"
+          @compositionend="onInputChange"
           @keydown="onInputKeydown"
           @paste="onInputPaste"
         />
@@ -2070,6 +2072,10 @@ function onInputChange(event?: Event): void {
   const textarea = event?.currentTarget instanceof HTMLTextAreaElement
     ? event.currentTarget
     : inputRef.value
+  // Android IMEs can keep Vue's v-model one input event behind while text is
+  // being composed. Read the DOM value before matching $, @, or / tokens so
+  // suggestions follow each visible character instead of the next keystroke.
+  syncDraftFromTextarea()
   hasImmediateInputText.value = (textarea?.value ?? draft.value).trim().length > 0
   if (dictationFeedback.value) {
     dictationFeedback.value = ''
@@ -2221,8 +2227,9 @@ function updateSkillMentionState(): void {
     closeSkillMention()
     return
   }
-  const cursor = input.selectionStart ?? draft.value.length
-  const match = findActiveComposerToken(draft.value, cursor, '$')
+  const liveDraft = input.value
+  const cursor = input.selectionStart ?? liveDraft.length
+  const match = findActiveComposerToken(liveDraft, cursor, '$')
   if (!match) {
     closeSkillMention()
     return
@@ -2237,9 +2244,10 @@ function applySkillMention(skill: SkillItem): void {
   const input = inputRef.value
   const start = skillMentionStartIndex.value
   if (start !== null && input) {
-    const cursor = input.selectionStart ?? draft.value.length
-    const before = draft.value.slice(0, start)
-    const after = draft.value.slice(cursor)
+    const liveDraft = input.value
+    const cursor = input.selectionStart ?? liveDraft.length
+    const before = liveDraft.slice(0, start)
+    const after = liveDraft.slice(cursor)
     const normalizedAfter = /\s$/u.test(before) && /^\s/u.test(after) ? after.slice(1) : after
     draft.value = `${before}${normalizedAfter}`
   }
@@ -2269,8 +2277,9 @@ function updateFileMentionState(): void {
     closeFileMention()
     return
   }
-  const cursor = input.selectionStart ?? draft.value.length
-  const match = findActiveComposerToken(draft.value, cursor, '@')
+  const liveDraft = input.value
+  const cursor = input.selectionStart ?? liveDraft.length
+  const match = findActiveComposerToken(liveDraft, cursor, '@')
   if (!match) {
     closeFileMention()
     return
@@ -2310,8 +2319,9 @@ function applyFileMention(suggestion: ComposerFileSuggestion): void {
   const input = inputRef.value
   const start = mentionStartIndex.value
   if (start !== null && input) {
-    const cursor = input.selectionStart ?? draft.value.length
-    draft.value = `${draft.value.slice(0, start)}${draft.value.slice(cursor)}`.trimEnd()
+    const liveDraft = input.value
+    const cursor = input.selectionStart ?? liveDraft.length
+    draft.value = `${liveDraft.slice(0, start)}${liveDraft.slice(cursor)}`.trimEnd()
   }
   addFileAttachment(suggestion.path)
   closeFileMention()
