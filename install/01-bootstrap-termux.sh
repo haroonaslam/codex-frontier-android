@@ -33,7 +33,7 @@ if [ "${1:-}" != "--build" ]; then
     say "Updating the existing Codex Frontier checkout"
     [ -z "$(git -C "$APP_HOME" status --porcelain --untracked-files=all)" ] \
       || fail "local changes exist; preserve or commit them before updating"
-    git -C "$APP_HOME" fetch origin main
+    git -C "$APP_HOME" fetch origin main:refs/remotes/origin/main
     if git -C "$APP_HOME" show-ref --verify --quiet refs/heads/main; then
       git -C "$APP_HOME" switch main
     else

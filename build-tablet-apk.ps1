@@ -9,7 +9,7 @@ $status = (& git -C $project status --porcelain --untracked-files=all)
 if ($LASTEXITCODE -ne 0 -or $status) {
     throw 'APK builds require a clean worktree'
 }
-& git -C $project fetch origin main
+& git -C $project fetch origin 'main:refs/remotes/origin/main'
 if ($LASTEXITCODE -ne 0) { throw 'Unable to fetch origin/main before APK build' }
 $head = (& git -C $project rev-parse HEAD).Trim()
 $originMain = (& git -C $project rev-parse origin/main).Trim()
