@@ -13,10 +13,6 @@ fail() {
 cd "$APP_HOME"
 
 ./isolation-preflight.sh
-PYTHONDONTWRITEBYTECODE=1 python -m unittest \
-  tests.test_android_installer \
-  tests.test_android_semantic \
-  tests.test_tablet_variant
 ./codex-frontier-stop.sh >/dev/null 2>&1 || true
 ./codex-frontier-start.sh
 
@@ -52,6 +48,11 @@ printf '\nDownloading the signed Android app...\n'
 curl -fL --retry 3 --output "$apk_path" "$apk_url"
 actual_sha256="$(sha256sum "$apk_path" | awk '{print $1}')"
 [ "$actual_sha256" = "$apk_sha256" ] || fail "downloaded APK SHA-256 did not match the release manifest"
+
+PYTHONDONTWRITEBYTECODE=1 python -m unittest \
+  tests.test_android_installer \
+  tests.test_android_semantic \
+  tests.test_tablet_variant
 
 command -v termux-reload-settings >/dev/null 2>&1 && termux-reload-settings >/dev/null 2>&1 || true
 

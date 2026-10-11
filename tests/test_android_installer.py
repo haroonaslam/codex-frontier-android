@@ -69,6 +69,7 @@ class AndroidInstallerTests(unittest.TestCase):
         script = self.text("install/03-finish-setup.sh")
         self.assertIn("release-manifest.json", script)
         self.assertIn("tests.test_android_installer", script)
+        self.assertLess(script.index('actual_sha256='), script.index('tests.test_android_installer'))
         self.assertIn("sha256sum", script)
         self.assertIn("termux-open --view", script)
         self.assertNotIn("adb ", script)
