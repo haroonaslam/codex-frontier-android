@@ -51,6 +51,16 @@ class AndroidInstallerTests(unittest.TestCase):
         self.assertIn("hydrate-model-cache.mjs", script)
         self.assertIn("./isolation-preflight.sh", script)
 
+    def test_workspace_migration_preserves_existing_sessions_and_updates(self) -> None:
+        bootstrap = self.text("install/01-bootstrap-termux.sh")
+        setup = self.text("install/ensure-user-workspace.sh")
+        self.assertIn("install/ensure-user-workspace.sh", bootstrap)
+        self.assertIn('mv "$LEGACY_WORKSPACE" "$USER_WORKSPACE"', setup)
+        self.assertIn('ln -s "$USER_WORKSPACE" "$LEGACY_WORKSPACE"', setup)
+        self.assertIn('if [ ! -e "$USER_WORKSPACE/AGENTS.md" ]', setup)
+        self.assertIn('if [ ! -e "$EDITABLE_DEVELOPMENT" ]', setup)
+        self.assertIn("personal notes never make", setup)
+
     def test_finish_downloads_verifies_and_opens_apk_on_android(self) -> None:
         script = self.text("install/03-finish-setup.sh")
         self.assertIn("release-manifest.json", script)

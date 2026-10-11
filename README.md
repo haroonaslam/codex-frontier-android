@@ -41,7 +41,10 @@ inspect-before-running and resumable alternatives.
 - Markdown, syntax-highlighted code, tables, attachments, terminals, review, projects, and automations
 - On-demand native launcher and separate stop launcher
 - Manual and pull-to-refresh with bounded read-only RPC retry
-- Separate Android package, WebView data, HOME, CODEX_HOME, port, workspace, and sessions
+- Separate Android package, WebView data, HOME, CODEX_HOME, port, and sessions
+- User projects in `$HOME/codex-workspace`, outside the installed application checkout
+- Settings viewer/editor for normal workspace instructions and an untracked,
+  upgrade-safe copy of the separate Frontier development reference
 
 ## Important installation boundary
 
@@ -82,6 +85,6 @@ in this repository. See [INSTALL.md](INSTALL.md).
 
 ## Security and privacy
 
-This repository intentionally excludes authentication snapshots, account files, runtime databases, sessions, memories, logs, vaults, private workspaces, Android signing keys, and local device evidence. Read [SECURITY.md](SECURITY.md) before publishing forks or diagnostic bundles.
+This repository intentionally excludes authentication snapshots, account files, runtime databases, sessions, memories, logs, vaults, the external `$HOME/codex-workspace`, Android signing keys, and local device evidence. Read [SECURITY.md](SECURITY.md) before publishing forks or diagnostic bundles.
 
 The web interface is based on the MIT-licensed [codexui](https://github.com/friuns2/codexui) project. OpenAI Codex remains subject to OpenAI's terms and the user's own account entitlements.

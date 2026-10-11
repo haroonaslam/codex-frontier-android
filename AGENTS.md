@@ -1,34 +1,26 @@
-# Codex Frontier Isolation Contract
+# Codex Frontier Installed Runtime Guidance
 
-This repository belongs only to the independent Codex Frontier Android application.
+This checkout contains the installed Codex Frontier Android application. It is
+not the user's normal project workspace. Ordinary chats and projects belong in
+`/data/data/com.termux/files/home/codex-workspace`.
 
-## Fixed boundaries
+## Normal use
 
-- Project root: `/data/data/com.termux/files/home/codex-subscription-isolated-app`
-- Android package: `com.michaelovsky.codexsubscription.isolated`
-- GUI port: `5902`
-- Provider: native OpenAI Codex through a ChatGPT subscription session
-- Default model: `gpt-5.6-sol`; the UI may select any model returned by the authenticated Codex catalog
-- Original app: `com.michaelovsky.codexapplauncher`, port `5900` — never modify, reinstall, uninstall, clear, force-stop, or reconfigure it
+- Work on the project or files the user selected in the external workspace.
+- Building, testing, starting, and stopping processes that belong to a
+  user-requested project is allowed when it is part of that request.
+- Do not treat Frontier's own source tree, backend, installer, or Android
+  package as the target of an ordinary coding request.
+- Do not read, display, copy, or expose authentication tokens, session
+  credentials, signing material, or other secrets.
 
-All writable HOME, CODEX_HOME, workspace, sessions, memories, logs, plugins, skills, models, build output, APKs, and signing material must remain below this repository. Shared Termux, Node, Java, Android SDK, Shizuku, and Codex executables may be invoked as read-only dependencies but must never be patched by this project.
+## Frontier maintenance
 
-The active web runtime is `vendor/codexapp-frontier-src/dist-cli/index.js`. The active Codex executable is the project-local `vendor/codex-cli-frontier/node_modules/.bin/codex` at version 0.162.1. Never replace it with, update, or configure the shared global Codex installation.
+Do not modify, rebuild, verify, update, start, stop, uninstall, clear, or
+reconfigure Codex Frontier itself unless the user explicitly asks to maintain
+Frontier. Do not stop or alter unrelated applications or processes.
 
-The subscription credential is an independent file snapshot at `runtime/.codex/auth.json`. It may refresh only that file. Never symlink it, replace the original `$HOME/.codex/auth.json`, create an API key, or enable a custom provider endpoint. Model availability is determined by the live authenticated Codex model catalog, not an API catalog.
-
-Skills and plugins may be imported only as validated, one-way copies. Never share writable directories, bind-mount, symlink, mirror with deletion, or overwrite an existing destination. Provider config, authentication, databases, sessions, memories, vault data, logs, launchers, APKs, signing material, and app source are never eligible for exchange.
-
-For every future change:
-
-1. Run `./isolation-preflight.sh`.
-2. Record the hash and HTTP health for the protected original app without stopping it.
-3. Keep package ID, port, HOME, CODEX_HOME, and workspace isolated.
-4. Build and install only `com.michaelovsky.codexsubscription.isolated`.
-5. If this project runtime must be restarted, target only a PID whose full command line contains this exact project root or port 5902; never use a broad process pattern.
-6. Keep `codex-frontier-start.sh` and `codex-frontier-stop.sh` headless. This tablet variant deliberately has no boot receiver, watchdog service, wake lock, or persistent Android background service.
-7. Preserve durable `/goal` RPC support and the source-level slash-command tests.
-8. Run `./verify-codex-frontier.sh` without opening the Android UI.
-9. Recheck the protected original APK hash, running process, and port.
-
-If any boundary cannot be proven, stop without applying or installing the change.
+When the user explicitly requests Frontier development or maintenance, read
+`DEVELOPMENT.md` before making changes. That document contains the package,
+runtime, isolation, build, and verification contract; it is not an instruction
+to perform those operations during normal app use.

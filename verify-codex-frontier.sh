@@ -14,6 +14,7 @@ test -x "$PROJECT_ROOT/install/install.sh"
 test -x "$PROJECT_ROOT/install/01-bootstrap-termux.sh"
 test -x "$PROJECT_ROOT/install/02-login-codex.sh"
 test -x "$PROJECT_ROOT/install/03-finish-setup.sh"
+test -x "$PROJECT_ROOT/install/ensure-user-workspace.sh"
 
 PYTHONDONTWRITEBYTECODE=1 python -m unittest \
   tests.test_android_installer \

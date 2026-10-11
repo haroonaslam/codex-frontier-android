@@ -38,6 +38,10 @@ class CodexFrontierConfigTests(unittest.TestCase):
         self.assertIn('sandbox_mode = "workspace-write"', config)
         self.assertNotIn("model_provider", config)
         self.assertFalse((ROOT / "runtime-template/.codex/webui-custom-providers.json").exists())
+        self.assertIn(
+            '[projects."/data/data/com.termux/files/home/codex-workspace"]',
+            config,
+        )
 
     def test_codex_cli_is_project_local_and_pinned(self) -> None:
         package = json.loads(read("vendor/codex-cli-frontier/package.json"))

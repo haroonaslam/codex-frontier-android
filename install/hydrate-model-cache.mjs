@@ -4,9 +4,10 @@ import { spawn } from 'node:child_process'
 import { createInterface } from 'node:readline'
 
 const root = '/data/data/com.termux/files/home/codex-subscription-isolated-app'
+const workspace = '/data/data/com.termux/files/home/codex-workspace'
 const codex = `${root}/bin/codex`
 const child = spawn(codex, ['app-server'], {
-  cwd: `${root}/workspace`,
+  cwd: workspace,
   env: process.env,
   stdio: ['pipe', 'pipe', 'inherit'],
 })

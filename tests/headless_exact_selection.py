@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 
 
 RPC_URL = "http://127.0.0.1:5902/codex-api/rpc"
-WORKSPACE = "/data/data/com.termux/files/home/codex-subscription-isolated-app/workspace"
+WORKSPACE = "/data/data/com.termux/files/home/codex-workspace"
 
 
 def rpc(method: str, params: object | None = None, *, retries: int = 1) -> object:

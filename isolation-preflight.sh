@@ -3,6 +3,7 @@ set -eu
 
 PROJECT_ROOT="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 EXPECTED_ROOT="/data/data/com.termux/files/home/codex-subscription-isolated-app"
+USER_WORKSPACE="/data/data/com.termux/files/home/codex-workspace"
 CODEX_PACKAGE="com.michaelovsky.codexsubscription.isolated"
 ORIGINAL_PACKAGE="com.michaelovsky.codexapplauncher"
 GUI_PORT="5902"
@@ -28,6 +29,8 @@ grep -Fq 'RUN_COMMAND_WORKDIR", APP_HOME' "$PROJECT_ROOT/src/com/michaelovsky/co
 grep -Fq "PORT=$GUI_PORT" "$PROJECT_ROOT/codex-frontier-start.sh" || fail "wrong GUI port"
 grep -Fq 'HOME="$ISOLATED_HOME"' "$PROJECT_ROOT/codex-frontier-start.sh" || fail "HOME is not isolated"
 grep -Fq 'CODEX_HOME="$ISOLATED_CODEX_ROOT"' "$PROJECT_ROOT/codex-frontier-start.sh" || fail "CODEX_HOME is not isolated"
+grep -Fq 'USER_WORKSPACE="$TERMUX_HOME/codex-workspace"' "$PROJECT_ROOT/codex-frontier-start.sh" || fail "user workspace is not external"
+grep -Fq 'CODEX_FRONTIER_WORKSPACE="$USER_WORKSPACE"' "$PROJECT_ROOT/codex-frontier-start.sh" || fail "file editor workspace is not explicit"
 grep -Fq 'PATH="$APP_HOME/bin:$LOCAL_CODEX_BIN:' "$PROJECT_ROOT/codex-frontier-start.sh" || fail "project commands and Codex CLI are not first in PATH"
 grep -Fq 'RUNTIME_ENTRY="$APP_HOME/vendor/codexapp-frontier-src/dist-cli/index.js"' "$PROJECT_ROOT/codex-frontier-start.sh" || fail "web runtime is not the Frontier-owned build"
 grep -Fq "model = \"$MODEL\"" "$PROJECT_ROOT/runtime/.codex/config.toml" || fail "wrong default model"
@@ -66,6 +69,11 @@ grep -Fq 'const host = "127.0.0.1"' "$PROJECT_ROOT/bin/termux-connect-proxy.mjs"
 grep -Fq "server.listen(port, '127.0.0.1')" "$PROJECT_ROOT/vendor/codexapp-frontier-src/src/cli/index.ts" || fail "server is not loopback-only"
 grep -Fq 'approval_policy = "on-request"' "$PROJECT_ROOT/runtime/.codex/config.toml" || fail "approval policy is not on-request"
 grep -Fq 'sandbox_mode = "workspace-write"' "$PROJECT_ROOT/runtime/.codex/config.toml" || fail "sandbox mode is not workspace-write"
+grep -Fq "[projects.\"$USER_WORKSPACE\"]" "$PROJECT_ROOT/runtime/.codex/config.toml" || fail "external workspace is not trusted"
+test -f "$USER_WORKSPACE/AGENTS.md" || fail "workspace instructions are missing"
+test -f "$PROJECT_ROOT/runtime/.codex/DEVELOPMENT.md" || fail "editable development reference is missing"
+test -L "$PROJECT_ROOT/workspace" || fail "legacy workspace compatibility link is missing"
+test "$(readlink -f -- "$PROJECT_ROOT/workspace")" = "$USER_WORKSPACE" || fail "legacy workspace compatibility link is unexpected"
 
 for file in \
   "$PROJECT_ROOT/AndroidManifest.xml" \
@@ -80,7 +88,7 @@ done
 while IFS= read -r link; do
   resolved="$(readlink -f -- "$link")"
   case "$resolved" in
-    "$PROJECT_ROOT"/*|"$CODEX_ENGINE"|/data/data/com.termux/files/usr/lib/node_modules/@openai/codex-*/vendor/*/bin/codex|/data/data/com.termux/files/usr/bin/am|/data/data/com.termux/files/usr/bin/bash|/data/data/com.termux/files/usr/bin/dash|/data/data/com.termux/files/usr/bin/sh) ;;
+    "$USER_WORKSPACE"|"$PROJECT_ROOT"/*|"$CODEX_ENGINE"|/data/data/com.termux/files/usr/lib/node_modules/@openai/codex-*/vendor/*/bin/codex|/data/data/com.termux/files/usr/bin/am|/data/data/com.termux/files/usr/bin/bash|/data/data/com.termux/files/usr/bin/dash|/data/data/com.termux/files/usr/bin/sh) ;;
     *) fail "external symlink: $link -> $resolved" ;;
   esac
 done < <(find "$PROJECT_ROOT" -type l -print)

@@ -36,5 +36,5 @@ use_memories = true
 disable_on_external_context = false
 min_rate_limit_remaining_percent = 0
 
-[projects."/data/data/com.termux/files/home/codex-subscription-isolated-app/workspace"]
+[projects."/data/data/com.termux/files/home/codex-workspace"]
 trust_level = "trusted"

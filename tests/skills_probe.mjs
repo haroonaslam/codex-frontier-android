@@ -4,7 +4,7 @@ const response = await fetch('http://127.0.0.1:5902/codex-api/rpc', {
   body: JSON.stringify({
     method: 'skills/list',
     params: {
-      cwds: ['/data/data/com.termux/files/home/codex-subscription-isolated-app/workspace'],
+      cwds: ['/data/data/com.termux/files/home/codex-workspace'],
       forceReload: true,
     },
   }),

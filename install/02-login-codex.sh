@@ -18,7 +18,8 @@ cd "$APP_HOME"
 test -x ./bin/codex || fail "Codex is not installed; run ./install/01-bootstrap-termux.sh first"
 test -f ./vendor/codex-cli-frontier/node_modules/@openai/codex-linux-arm64/package.json || fail "Codex ARM64 runtime is missing"
 
-mkdir -p "$CODEX_HOME_DIR" "$ISOLATED_HOME" workspace "$CODEX_HOME_DIR/logs"
+./install/ensure-user-workspace.sh
+mkdir -p "$CODEX_HOME_DIR" "$ISOLATED_HOME" "$CODEX_HOME_DIR/logs"
 if [ ! -f "$CODEX_HOME_DIR/config.toml" ]; then
   cp runtime-template/.codex/config.toml "$CODEX_HOME_DIR/config.toml"
 fi

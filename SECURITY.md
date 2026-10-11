@@ -5,7 +5,7 @@
 - `runtime/` or any `.codex` account/session state
 - `auth.json`, `accounts.json`, tokens, cookies, or API keys
 - SQLite databases, logs, memories, vaults, or imported transcripts
-- `workspace/` user projects
+- `$HOME/codex-workspace/` user projects (external to the application checkout)
 - `build/` signing keys or signing properties
 - Android package dumps, device paths, or private verification evidence
 

@@ -90,6 +90,30 @@ class TabletVariantTests(unittest.TestCase):
         self.assertIn("if (!selected) {", app)
         self.assertIn("newThreadCwd.value = options[0]?.value?.trim() ?? ''", app)
 
+    def test_normal_workspace_is_outside_the_application_checkout(self):
+        launcher = text("codex-frontier-start.sh")
+        config = text("runtime-template/.codex/config.toml")
+        setup = text("install/ensure-user-workspace.sh")
+        self.assertIn('USER_WORKSPACE="$TERMUX_HOME/codex-workspace"', launcher)
+        self.assertIn('CODEX_FRONTIER_WORKSPACE="$USER_WORKSPACE"', launcher)
+        self.assertIn(
+            '[projects."/data/data/com.termux/files/home/codex-workspace"]',
+            config,
+        )
+        self.assertIn('USER_WORKSPACE="$TERMUX_HOME/codex-workspace"', setup)
+        self.assertIn('ln -s "$USER_WORKSPACE" "$LEGACY_WORKSPACE"', setup)
+        self.assertIn('EDITABLE_DEVELOPMENT="$APP_HOME/runtime/.codex/DEVELOPMENT.md"', setup)
+        self.assertTrue((ROOT / "runtime-template/workspace/AGENTS.md").is_file())
+
+    def test_consumer_guidance_is_separate_from_development_reference(self):
+        agents = text("AGENTS.md")
+        development = text("DEVELOPMENT.md")
+        self.assertIn("Installed Runtime Guidance", agents)
+        self.assertIn("unless the user explicitly asks", agents)
+        self.assertNotIn("For every future change", agents)
+        self.assertIn("Explicit maintenance workflow", development)
+        self.assertIn("only when the user explicitly requests", development)
+
     def test_git_branch_control_is_not_shown_in_android_header(self):
         app = text("vendor/codexapp-frontier-src/src/App.vue")
         self.assertNotIn("<HeaderGitBranchDropdown", app)

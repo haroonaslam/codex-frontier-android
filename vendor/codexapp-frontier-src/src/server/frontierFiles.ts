@@ -2,7 +2,7 @@ import { dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 import { lstat, readFile, readdir, realpath, stat, writeFile } from 'node:fs/promises'
 import { isTextEditableFile } from './localBrowseUi.js'
 
-export type FrontierFileRootId = 'instructions' | 'memory' | 'memories' | 'skills' | 'config'
+export type FrontierFileRootId = 'instructions' | 'development' | 'memory' | 'memories' | 'skills' | 'config'
 
 export type FrontierFileRoot = {
   id: FrontierFileRootId
@@ -32,13 +32,25 @@ function getCodexHome(codexHomeOverride?: string): string {
 export function getFrontierFileRoots(codexHomeOverride?: string): FrontierFileRoot[] {
   const codexHome = getCodexHome(codexHomeOverride)
   const appHome = dirname(dirname(codexHome))
+  const termuxHome = dirname(appHome)
+  const configuredWorkspace = process.env.CODEX_FRONTIER_WORKSPACE?.trim()
+  const userWorkspace = configuredWorkspace && isAbsolute(configuredWorkspace)
+    ? resolve(configuredWorkspace)
+    : resolve(termuxHome, 'codex-workspace')
   return [
     {
       id: 'instructions',
-      label: 'Instructions',
-      description: 'Frontier AGENTS.md instructions',
+      label: 'Workspace instructions',
+      description: 'AGENTS.md used by normal Codex chats',
       kind: 'file',
-      path: resolve(appHome, 'AGENTS.md'),
+      path: resolve(userWorkspace, 'AGENTS.md'),
+    },
+    {
+      id: 'development',
+      label: 'Frontier development',
+      description: 'Reference for explicitly requested app maintenance',
+      kind: 'file',
+      path: resolve(codexHome, 'DEVELOPMENT.md'),
     },
     {
       id: 'memory',

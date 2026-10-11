@@ -4,7 +4,7 @@ set -eu
 TERMUX_HOME="/data/data/com.termux/files/home"
 APP_HOME="$TERMUX_HOME/codex-subscription-isolated-app"
 ISOLATED_CODEX_ROOT="$APP_HOME/runtime/.codex"
-ISOLATED_WORKSPACE="$APP_HOME/workspace"
+USER_WORKSPACE="$TERMUX_HOME/codex-workspace"
 ISOLATED_HOME="$APP_HOME/runtime/home"
 LOCAL_CODEX_BIN="$APP_HOME/vendor/codex-cli-frontier/node_modules/.bin"
 RUNTIME_ENTRY="$APP_HOME/vendor/codexapp-frontier-src/dist-cli/index.js"
@@ -73,6 +73,7 @@ terminate_owned_runtime() {
   ! is_owned_pid "$pid_value"
 }
 
+"$APP_HOME/install/ensure-user-workspace.sh"
 "$APP_HOME/isolation-preflight.sh"
 mkdir -p \
   "$ISOLATED_CODEX_ROOT/archived_sessions" \
@@ -87,7 +88,7 @@ mkdir -p \
   "$ISOLATED_CODEX_ROOT/skills" \
   "$ISOLATED_CODEX_ROOT/tmp" \
   "$ISOLATED_CODEX_ROOT/run" \
-  "$ISOLATED_WORKSPACE" \
+  "$USER_WORKSPACE" \
   "$ISOLATED_HOME"
 
 if [ ! -f "$ISOLATED_CODEX_ROOT/config.toml" ]; then
@@ -138,12 +139,13 @@ setsid env \
   HOME="$ISOLATED_HOME" \
   CODEX_HOME="$ISOLATED_CODEX_ROOT" \
   CODEX_RUNTIME_ROOT="$ISOLATED_CODEX_ROOT" \
+  CODEX_FRONTIER_WORKSPACE="$USER_WORKSPACE" \
   CODEXAPP_GUI_OWNER_MODE="codex-frontier" \
   NODE_ENV="production" \
   PATH="$PATH" \
   "$RUNTIME_WRAPPER" \
   "$RUNTIME_ENTRY" \
-  "$ISOLATED_WORKSPACE" \
+  "$USER_WORKSPACE" \
   -p "$PORT" \
   --no-open \
   --no-login \

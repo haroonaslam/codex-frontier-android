@@ -13,6 +13,10 @@ This local variant is intentionally on-demand and minimal:
 - A Termux-native `bin/codex` wrapper avoids the Linux `/usr/bin/env` shebang
   incompatibility in background `RUN_COMMAND` sessions.
 - `workspace-write` sandboxing with `on-request` approvals.
+- A normal user workspace at `$HOME/codex-workspace`, outside the application
+  checkout, with consumer-focused `AGENTS.md` guidance.
+- A settings viewer/editor that exposes both the active workspace instructions
+  and the separate, opt-in Frontier development reference.
 - Directly copied local skills under `runtime/.codex/skills`.
 
 Termux must have `allow-external-apps = true` in

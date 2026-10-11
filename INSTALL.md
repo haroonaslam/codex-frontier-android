@@ -75,7 +75,10 @@ The account credential is created only on the user's device under
 An APK-only update is sufficient when the matching Termux backend is already
 installed. Download `Codex-Frontier-2.8.0-tablet.1.apk` from the GitHub Release,
 open it, and approve the Android update. App data, Codex login, conversations,
-workspace, and skills remain in place.
+the external `$HOME/codex-workspace`, and skills remain in place. On the first
+upgrade from an older release, the installer moves the former in-repository
+`workspace` directory to `$HOME/codex-workspace` and leaves a compatibility
+link so existing conversation working directories continue to resolve.
 
 ## On-demand runtime
 
