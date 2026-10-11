@@ -194,32 +194,6 @@
           </template>
           <div v-else class="thread-composer-file-mention-empty">{{ t('No matching files') }}</div>
         </div>
-        <div v-if="isSkillMentionOpen" class="thread-composer-file-mentions" role="listbox" aria-label="Codex skills">
-          <template v-if="filteredSkillMentions.length > 0">
-            <button
-              v-for="(skill, index) in filteredSkillMentions"
-              :key="skill.path"
-              class="thread-composer-file-mention-row"
-              :class="{ 'is-active': index === skillMentionHighlightedIndex }"
-              type="button"
-              role="option"
-              :aria-selected="index === skillMentionHighlightedIndex"
-              @mousedown.prevent="applySkillMention(skill)"
-            >
-              <span
-                class="thread-composer-file-mention-icon-badge"
-                :class="`is-${skillSourceBadge(skill).badgeTone}`"
-              >
-                {{ skillSourceBadge(skill).badge }}
-              </span>
-              <span class="thread-composer-file-mention-text">
-                <span class="thread-composer-file-mention-name">${{ skill.displayName || skill.name }}</span>
-                <span class="thread-composer-file-mention-dir">{{ skill.description }}</span>
-              </span>
-            </button>
-          </template>
-          <div v-else class="thread-composer-file-mention-empty">{{ t('No skills found') }}</div>
-        </div>
         <div v-if="isSlashMenuOpen" class="thread-composer-slash-menu" role="listbox" aria-label="Codex commands">
           <button
             v-for="(command, index) in filteredSlashCommands"
@@ -245,8 +219,9 @@
           :placeholder="placeholderText"
           :disabled="isInteractionDisabled"
           @input="onInputChange"
-          @compositionupdate="onInputChange"
-          @compositionend="onInputChange"
+          @compositionstart="onComposerCompositionStart"
+          @compositionupdate="onComposerCompositionUpdate"
+          @compositionend="onComposerCompositionEnd"
           @keydown="onInputKeydown"
           @paste="onInputPaste"
         />
@@ -389,13 +364,15 @@
 
           <ComposerSearchDropdown
             class="thread-composer-control"
-            :options="skillDropdownOptions"
+            :options="isSkillMentionOpen ? skillMentionDropdownOptions : skillDropdownOptions"
             :selected-values="selectedSkillPaths"
             :placeholder="t('Skills')"
             :search-placeholder="t('Search skills and prompts...')"
             :create-label="t('Add new prompt')"
             :allow-remove="true"
             :remove-label="t('Remove prompt')"
+            :external-query="isSkillMentionOpen ? skillMentionQuery : null"
+            :external-highlighted-index="skillMentionHighlightedIndex"
             open-direction="up"
             :disabled="isComposerConfigDisabled"
             @toggle="onSkillDropdownToggle"
@@ -563,7 +540,11 @@ import IconTablerPlayerStopFilled from '../icons/IconTablerPlayerStopFilled.vue'
 import IconTablerWaveSine from '../icons/IconTablerWaveSine.vue'
 import ComposerDropdown from './ComposerDropdown.vue'
 import ComposerSearchDropdown from './ComposerSearchDropdown.vue'
-import { filterComposerOptions, findActiveComposerToken } from './composerSearch'
+import {
+  buildComposerCompositionPreview,
+  filterComposerOptions,
+  findActiveComposerToken,
+} from './composerSearch'
 
 type SkillSourceBadge = {
   badge: string
@@ -784,6 +765,9 @@ const slashDismissed = ref(false)
 const slashHighlightedIndex = ref(0)
 const isDraftOverflowing = ref(false)
 let composerOverflowMeasurementQueued = false
+let composerCompositionBaseText: string | null = null
+let composerCompositionStart = 0
+let composerCompositionEnd = 0
 const draftGeneration = ref(0)
 let fileMentionSearchToken = 0
 let fileMentionDebounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -853,13 +837,12 @@ const isPlanModeWaitingForModel = computed(() =>
 )
 
 const selectedSkillPaths = computed(() => selectedSkills.value.map((s) => s.path))
-const skillDropdownOptions = computed(() =>
-  [
-    ...(props.skills ?? []).map((s) => {
+const skillMentionDropdownOptions = computed(() =>
+  (props.skills ?? []).map((s) => {
       const source = skillSourceBadge(s)
       return {
         value: s.path,
-        label: s.name,
+        label: s.displayName || s.name,
         description: s.description,
         badge: source.badge,
         badgeLabel: source.badgeLabel,
@@ -867,6 +850,10 @@ const skillDropdownOptions = computed(() =>
         removable: false,
       }
     }),
+)
+const skillDropdownOptions = computed(() =>
+  [
+    ...skillMentionDropdownOptions.value,
     ...savedPrompts.value.map((prompt) => ({
       value: promptOptionValue(prompt.path),
       label: prompt.name,
@@ -2068,32 +2055,67 @@ function syncDraftFromTextarea(): void {
   hasImmediateInputText.value = (value ?? draft.value).trim().length > 0
 }
 
-function onInputChange(event?: Event): void {
-  const textarea = event?.currentTarget instanceof HTMLTextAreaElement
-    ? event.currentTarget
-    : inputRef.value
-  // Android IMEs can keep Vue's v-model one input event behind while text is
-  // being composed. Read the DOM value before matching $, @, or / tokens so
-  // suggestions follow each visible character instead of the next keystroke.
-  syncDraftFromTextarea()
-  hasImmediateInputText.value = (textarea?.value ?? draft.value).trim().length > 0
+function updateComposerTokenState(text: string, cursor: number): void {
+  hasImmediateInputText.value = text.trim().length > 0
   if (dictationFeedback.value) {
     dictationFeedback.value = ''
   }
   slashDismissed.value = false
   slashHighlightedIndex.value = 0
   queueComposerOverflowMeasurement()
-  if (draft.value.trimStart().startsWith('/')) {
+  if (text.trimStart().startsWith('/')) {
     closeFileMention()
     closeSkillMention()
     return
   }
-  updateSkillMentionState()
+  updateSkillMentionState(text, cursor)
   if (isSkillMentionOpen.value) {
     closeFileMention()
     return
   }
-  updateFileMentionState()
+  updateFileMentionState(text, cursor)
+}
+
+function onInputChange(event?: Event): void {
+  const textarea = event?.currentTarget instanceof HTMLTextAreaElement
+    ? event.currentTarget
+    : inputRef.value
+  if (event instanceof InputEvent && event.isComposing) return
+  // Android IMEs can keep Vue's v-model one input event behind while text is
+  // being composed. Read the DOM value before matching $, @, or / tokens so
+  // suggestions follow each visible character instead of the next keystroke.
+  syncDraftFromTextarea()
+  const text = textarea?.value ?? draft.value
+  const cursor = textarea?.selectionStart ?? text.length
+  updateComposerTokenState(text, cursor)
+}
+
+function onComposerCompositionStart(event: CompositionEvent): void {
+  const textarea = event.currentTarget
+  if (!(textarea instanceof HTMLTextAreaElement)) return
+  composerCompositionBaseText = textarea.value
+  composerCompositionStart = textarea.selectionStart ?? textarea.value.length
+  composerCompositionEnd = textarea.selectionEnd ?? composerCompositionStart
+}
+
+function onComposerCompositionUpdate(event: CompositionEvent): void {
+  if (composerCompositionBaseText === null) {
+    onComposerCompositionStart(event)
+  }
+  const preview = buildComposerCompositionPreview(
+    composerCompositionBaseText ?? '',
+    composerCompositionStart,
+    composerCompositionEnd,
+    event.data,
+  )
+  updateComposerTokenState(preview.text, preview.cursor)
+}
+
+function onComposerCompositionEnd(): void {
+  composerCompositionBaseText = null
+  // Some Android WebViews dispatch compositionend before exposing the final
+  // committed value. Re-read the textarea after the browser completes it.
+  window.requestAnimationFrame(() => onInputChange())
 }
 
 function onInputKeydown(event: KeyboardEvent): void {
@@ -2221,14 +2243,14 @@ function closeSkillMention(): void {
   skillMentionHighlightedIndex.value = 0
 }
 
-function updateSkillMentionState(): void {
+function updateSkillMentionState(text?: string, cursorPosition?: number): void {
   const input = inputRef.value
   if (!input) {
     closeSkillMention()
     return
   }
-  const liveDraft = input.value
-  const cursor = input.selectionStart ?? liveDraft.length
+  const liveDraft = text ?? input.value
+  const cursor = cursorPosition ?? input.selectionStart ?? liveDraft.length
   const match = findActiveComposerToken(liveDraft, cursor, '$')
   if (!match) {
     closeSkillMention()
@@ -2271,14 +2293,14 @@ function closeFileMention(): void {
   fileMentionHighlightedIndex.value = 0
 }
 
-function updateFileMentionState(): void {
+function updateFileMentionState(text?: string, cursorPosition?: number): void {
   const input = inputRef.value
   if (!input) {
     closeFileMention()
     return
   }
-  const liveDraft = input.value
-  const cursor = input.selectionStart ?? liveDraft.length
+  const liveDraft = text ?? input.value
+  const cursor = cursorPosition ?? input.selectionStart ?? liveDraft.length
   const match = findActiveComposerToken(liveDraft, cursor, '@')
   if (!match) {
     closeFileMention()
@@ -2445,6 +2467,13 @@ function skillSourceBadge(skill: SkillItem): SkillSourceBadge {
 }
 
 function onSkillDropdownToggle(path: string, checked: boolean): void {
+  if (isSkillMentionOpen.value) {
+    const skill = (props.skills ?? []).find((item) => item.path === path)
+    if (skill) {
+      applySkillMention(skill)
+      return
+    }
+  }
   const promptPath = promptPathFromOptionValue(path)
   if (promptPath) {
     onPromptDropdownToggle(promptPath)

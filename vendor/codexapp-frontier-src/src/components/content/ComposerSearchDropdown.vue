@@ -32,7 +32,10 @@
               autocomplete="off"
               autocapitalize="none"
               spellcheck="false"
+              :readonly="isExternallyControlled"
+              :tabindex="isExternallyControlled ? -1 : 0"
               :placeholder="searchPlaceholder"
+              @pointerdown="onSearchPointerDown"
               @input="onSearchInput"
               @compositionend="onSearchInput"
               @keydown.escape.prevent="isOpen = false"
@@ -41,7 +44,7 @@
               @keydown.arrow-up.prevent="moveHighlight(-1)"
             />
             <button
-              v-if="createLabel"
+              v-if="createLabel && !isExternallyControlled"
               class="search-dropdown-create-icon"
               type="button"
               :aria-label="createLabel"
@@ -52,7 +55,7 @@
             </button>
           </div>
           <button
-            v-if="createLabel"
+            v-if="createLabel && !isExternallyControlled"
             class="search-dropdown-create"
             type="button"
             @click="emit('create')"
@@ -66,7 +69,7 @@
               class="search-dropdown-option"
               :class="{
                 'is-selected': selected.has(opt.value),
-                'is-highlighted': idx === highlightIdx,
+                'is-highlighted': idx === effectiveHighlightIdx,
               }"
               @pointerenter="highlightIdx = idx"
             >
@@ -139,6 +142,8 @@ const props = defineProps<{
   allowRemove?: boolean
   removeLabel?: string
   displayLabelOverride?: string
+  externalQuery?: string | null
+  externalHighlightedIndex?: number
 }>()
 
 const emit = defineEmits<{
@@ -153,11 +158,16 @@ const searchRef = ref<HTMLInputElement | null>(null)
 const isOpen = ref(false)
 const searchQuery = ref('')
 const highlightIdx = ref(0)
+const openedFromExternalQuery = ref(false)
 const menuStyle = ref<Record<string, string>>({})
 const { t } = useUiLanguage()
 
 const openDirection = computed(() => props.openDirection ?? 'down')
 const selected = computed(() => new Set(props.selectedValues))
+const isExternallyControlled = computed(() => props.externalQuery !== null && props.externalQuery !== undefined)
+const effectiveHighlightIdx = computed(() =>
+  isExternallyControlled.value ? (props.externalHighlightedIndex ?? 0) : highlightIdx.value,
+)
 
 const displayLabel = computed(() => {
   if (props.displayLabelOverride?.trim()) return props.displayLabelOverride.trim()
@@ -177,6 +187,10 @@ function onSearchInput(event: Event): void {
   if (event.currentTarget instanceof HTMLInputElement) {
     searchQuery.value = event.currentTarget.value
   }
+}
+
+function onSearchPointerDown(event: PointerEvent): void {
+  if (isExternallyControlled.value) event.preventDefault()
 }
 
 function updateMenuPosition(): void {
@@ -255,6 +269,24 @@ function onDocumentPointerDown(event: PointerEvent): void {
 }
 
 watch(searchQuery, () => { highlightIdx.value = 0 })
+
+watch(
+  () => props.externalQuery,
+  (query) => {
+    if (query === null || query === undefined) {
+      if (openedFromExternalQuery.value) isOpen.value = false
+      openedFromExternalQuery.value = false
+      return
+    }
+    openedFromExternalQuery.value = true
+    searchQuery.value = query
+    isOpen.value = true
+    nextTick(() => {
+      nextTick(updateMenuPosition)
+    })
+  },
+  { immediate: true },
+)
 
 function onWindowLayoutChange(): void {
   if (!isOpen.value) return

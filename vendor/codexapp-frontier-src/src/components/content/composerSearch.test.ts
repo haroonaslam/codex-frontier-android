@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { filterComposerOptions, findActiveComposerToken } from './composerSearch'
+import {
+  buildComposerCompositionPreview,
+  filterComposerOptions,
+  findActiveComposerToken,
+} from './composerSearch'
 
 const options = [
   { value: '/plugins/kickoff/SKILL.md', label: 'project-kickoff', description: 'Assign project roles', badgeLabel: 'Plugin' },
@@ -29,5 +33,24 @@ describe('findActiveComposerToken', () => {
 
   it('does not match a completed token away from the cursor', () => {
     expect(findActiveComposerToken('$role please', 12, '$')).toBeNull()
+  })
+})
+
+describe('buildComposerCompositionPreview', () => {
+  it('exposes an Android IME word before the keyboard commits it with a space', () => {
+    const preview = buildComposerCompositionPreview('$', 1, 1, 'qwen')
+    expect(preview).toEqual({ text: '$qwen', cursor: 5 })
+    expect(findActiveComposerToken(preview.text, preview.cursor, '$')).toEqual({
+      start: 0,
+      query: 'qwen',
+    })
+  })
+
+  it('supports keyboards that compose the prefix and query together', () => {
+    const preview = buildComposerCompositionPreview('', 0, 0, '$qwen')
+    expect(findActiveComposerToken(preview.text, preview.cursor, '$')).toEqual({
+      start: 0,
+      query: 'qwen',
+    })
   })
 })

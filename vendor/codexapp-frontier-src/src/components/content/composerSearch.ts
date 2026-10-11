@@ -44,6 +44,25 @@ export type ComposerTokenMatch = {
   query: string
 }
 
+export type ComposerCompositionPreview = {
+  text: string
+  cursor: number
+}
+
+export function buildComposerCompositionPreview(
+  baseText: string,
+  selectionStart: number,
+  selectionEnd: number,
+  compositionText: string,
+): ComposerCompositionPreview {
+  const start = Math.max(0, Math.min(selectionStart, baseText.length))
+  const end = Math.max(start, Math.min(selectionEnd, baseText.length))
+  return {
+    text: `${baseText.slice(0, start)}${compositionText}${baseText.slice(end)}`,
+    cursor: start + compositionText.length,
+  }
+}
+
 export function findActiveComposerToken(
   text: string,
   cursor: number,
