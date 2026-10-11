@@ -55,7 +55,16 @@ if [ ! -e "$USER_WORKSPACE/AGENTS.md" ]; then
   cp "$INSTRUCTIONS_TEMPLATE" "$USER_WORKSPACE/AGENTS.md"
 fi
 
-if [ ! -s "$GLOBAL_INSTRUCTIONS" ]; then
+if [ -L "$GLOBAL_INSTRUCTIONS" ]; then
+  global_instructions_migration="$APP_HOME/runtime/.codex/.AGENTS.md.migration"
+  if [ -s "$GLOBAL_INSTRUCTIONS" ]; then
+    cp -L "$GLOBAL_INSTRUCTIONS" "$global_instructions_migration"
+  else
+    cp "$GLOBAL_INSTRUCTIONS_TEMPLATE" "$global_instructions_migration"
+  fi
+  rm "$GLOBAL_INSTRUCTIONS"
+  mv "$global_instructions_migration" "$GLOBAL_INSTRUCTIONS"
+elif [ ! -s "$GLOBAL_INSTRUCTIONS" ]; then
   cp "$GLOBAL_INSTRUCTIONS_TEMPLATE" "$GLOBAL_INSTRUCTIONS"
 fi
 
