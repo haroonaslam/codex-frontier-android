@@ -2080,7 +2080,15 @@ function onInputChange(event?: Event): void {
   const textarea = event?.currentTarget instanceof HTMLTextAreaElement
     ? event.currentTarget
     : inputRef.value
-  if (event instanceof InputEvent && event.isComposing) return
+  if (event instanceof InputEvent && event.isComposing) {
+    // Samsung Keyboard exposes the visible composing word through the textarea
+    // during `input`, even though Vue intentionally defers its v-model update.
+    // Filter from that live value without committing or re-rendering the draft.
+    const composingText = textarea?.value ?? draft.value
+    const composingCursor = textarea?.selectionStart ?? composingText.length
+    updateComposerTokenState(composingText, composingCursor)
+    return
+  }
   // Android IMEs can keep Vue's v-model one input event behind while text is
   // being composed. Read the DOM value before matching $, @, or / tokens so
   // suggestions follow each visible character instead of the next keystroke.
