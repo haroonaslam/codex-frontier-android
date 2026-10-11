@@ -7,6 +7,7 @@ import express, { type Express } from 'express'
 import { createCodexBridgeMiddleware } from './codexAppServerBridge.js'
 import { createAuthSession } from './authMiddleware.js'
 import { createDirectoryListingHtml, createTextEditorHtml, decodeBrowsePath, getLocalDirectoryListing, isTextEditableFile, normalizeLocalPath } from './localBrowseUi.js'
+import { browseFrontierFiles, getFrontierFileRoots, writeFrontierFile } from './frontierFiles.js'
 import { WebSocketServer, type WebSocket } from 'ws'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -215,6 +216,38 @@ export function createServer(options: ServerOptions = {}): ServerInstance {
       res.status(200).json({ ok: true })
     } catch {
       res.status(404).json({ error: 'File not found.' })
+    }
+  })
+
+  // Safe settings editor for Frontier-owned instructions, memory, skills, and config.
+  app.get('/frontier-files-api', async (req, res) => {
+    const root = typeof req.query.root === 'string' ? req.query.root : ''
+    const path = typeof req.query.path === 'string' ? req.query.path : ''
+    try {
+      if (!root) {
+        res.status(200).json({ kind: 'roots', entries: getFrontierFileRoots().map(({ path: _path, ...entry }) => entry) })
+        return
+      }
+      res.status(200).json(await browseFrontierFiles(root, path))
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Unable to open Frontier files.' })
+    }
+  })
+
+  app.put('/frontier-files-api', express.json({ limit: '2mb' }), async (req, res) => {
+    const body = req.body && typeof req.body === 'object' ? req.body as Record<string, unknown> : {}
+    const root = typeof body.root === 'string' ? body.root : ''
+    const path = typeof body.path === 'string' ? body.path : ''
+    const content = typeof body.content === 'string' ? body.content : null
+    if (!root || content === null) {
+      res.status(400).json({ error: 'Expected a Frontier file area and text content.' })
+      return
+    }
+    try {
+      await writeFrontierFile(root, path, content)
+      res.status(200).json({ ok: true })
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Unable to save Frontier file.' })
     }
   })
 

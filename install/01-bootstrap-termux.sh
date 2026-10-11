@@ -31,10 +31,17 @@ if [ "${1:-}" != "--build" ]; then
     fail "$APP_HOME exists but is not a Codex Frontier Git checkout"
   else
     say "Updating the existing Codex Frontier checkout"
-    git -C "$APP_HOME" diff --quiet || fail "tracked local changes exist; preserve or commit them before updating"
-    git -C "$APP_HOME" diff --cached --quiet || fail "staged local changes exist; preserve or commit them before updating"
+    [ -z "$(git -C "$APP_HOME" status --porcelain --untracked-files=all)" ] \
+      || fail "local changes exist; preserve or commit them before updating"
     git -C "$APP_HOME" fetch origin main
+    if git -C "$APP_HOME" show-ref --verify --quiet refs/heads/main; then
+      git -C "$APP_HOME" switch main
+    else
+      git -C "$APP_HOME" switch --create main --track origin/main
+    fi
     git -C "$APP_HOME" merge --ff-only origin/main
+    [ "$(git -C "$APP_HOME" rev-parse HEAD)" = "$(git -C "$APP_HOME" rev-parse origin/main)" ] \
+      || fail "local main differs from origin/main; reconcile it before installing"
   fi
 
   exec "$APP_HOME/install/01-bootstrap-termux.sh" --build

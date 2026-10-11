@@ -194,6 +194,32 @@
           </template>
           <div v-else class="thread-composer-file-mention-empty">{{ t('No matching files') }}</div>
         </div>
+        <div v-if="isSkillMentionOpen" class="thread-composer-file-mentions" role="listbox" aria-label="Codex skills">
+          <template v-if="filteredSkillMentions.length > 0">
+            <button
+              v-for="(skill, index) in filteredSkillMentions"
+              :key="skill.path"
+              class="thread-composer-file-mention-row"
+              :class="{ 'is-active': index === skillMentionHighlightedIndex }"
+              type="button"
+              role="option"
+              :aria-selected="index === skillMentionHighlightedIndex"
+              @mousedown.prevent="applySkillMention(skill)"
+            >
+              <span
+                class="thread-composer-file-mention-icon-badge"
+                :class="`is-${skillSourceBadge(skill).badgeTone}`"
+              >
+                {{ skillSourceBadge(skill).badge }}
+              </span>
+              <span class="thread-composer-file-mention-text">
+                <span class="thread-composer-file-mention-name">${{ skill.displayName || skill.name }}</span>
+                <span class="thread-composer-file-mention-dir">{{ skill.description }}</span>
+              </span>
+            </button>
+          </template>
+          <div v-else class="thread-composer-file-mention-empty">{{ t('No skills found') }}</div>
+        </div>
         <div v-if="isSlashMenuOpen" class="thread-composer-slash-menu" role="listbox" aria-label="Codex commands">
           <button
             v-for="(command, index) in filteredSlashCommands"
@@ -535,6 +561,7 @@ import IconTablerPlayerStopFilled from '../icons/IconTablerPlayerStopFilled.vue'
 import IconTablerWaveSine from '../icons/IconTablerWaveSine.vue'
 import ComposerDropdown from './ComposerDropdown.vue'
 import ComposerSearchDropdown from './ComposerSearchDropdown.vue'
+import { filterComposerOptions, findActiveComposerToken } from './composerSearch'
 
 type SkillSourceBadge = {
   badge: string
@@ -743,6 +770,10 @@ const mentionQuery = ref('')
 const fileMentionSuggestions = ref<ComposerFileSuggestion[]>([])
 const isFileMentionOpen = ref(false)
 const fileMentionHighlightedIndex = ref(0)
+const skillMentionStartIndex = ref<number | null>(null)
+const skillMentionQuery = ref('')
+const isSkillMentionOpen = ref(false)
+const skillMentionHighlightedIndex = ref(0)
 const isComposerExpanded = ref(false)
 const threadGoal = ref<ThreadGoal | null>(null)
 const isGoalBusy = ref(false)
@@ -844,6 +875,18 @@ const skillDropdownOptions = computed(() =>
       removable: true,
     })),
   ],
+)
+
+const filteredSkillMentions = computed(() =>
+  filterComposerOptions(
+    (props.skills ?? []).map((skill) => ({
+      ...skill,
+      value: skill.path,
+      label: skill.displayName || skill.name,
+      badgeLabel: skill.scope,
+    })),
+    skillMentionQuery.value,
+  ).slice(0, 20),
 )
 
 const canSubmit = computed(() => {
@@ -2036,6 +2079,12 @@ function onInputChange(event?: Event): void {
   queueComposerOverflowMeasurement()
   if (draft.value.trimStart().startsWith('/')) {
     closeFileMention()
+    closeSkillMention()
+    return
+  }
+  updateSkillMentionState()
+  if (isSkillMentionOpen.value) {
+    closeFileMention()
     return
   }
   updateFileMentionState()
@@ -2068,6 +2117,36 @@ function onInputKeydown(event: KeyboardEvent): void {
       event.preventDefault()
       const selected = filteredSlashCommands.value[slashHighlightedIndex.value]
       if (selected) applySlashCommand(selected)
+      return
+    }
+  }
+
+  if (isSkillMentionOpen.value) {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      closeSkillMention()
+      return
+    }
+    if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      if (filteredSkillMentions.value.length > 0) {
+        skillMentionHighlightedIndex.value =
+          (skillMentionHighlightedIndex.value + 1) % filteredSkillMentions.value.length
+      }
+      return
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      if (filteredSkillMentions.value.length > 0) {
+        const size = filteredSkillMentions.value.length
+        skillMentionHighlightedIndex.value = (skillMentionHighlightedIndex.value + size - 1) % size
+      }
+      return
+    }
+    if (event.key === 'Enter' || event.key === 'Tab') {
+      event.preventDefault()
+      const selected = filteredSkillMentions.value[skillMentionHighlightedIndex.value]
+      if (selected) applySkillMention(selected)
       return
     }
   }
@@ -2122,9 +2201,57 @@ function applySlashCommand(command: SlashCommand): void {
   slashDismissed.value = true
   slashHighlightedIndex.value = 0
   closeFileMention()
+  closeSkillMention()
   void nextTick(() => {
     inputRef.value?.focus()
     inputRef.value?.setSelectionRange(draft.value.length, draft.value.length)
+  })
+}
+
+function closeSkillMention(): void {
+  isSkillMentionOpen.value = false
+  skillMentionStartIndex.value = null
+  skillMentionQuery.value = ''
+  skillMentionHighlightedIndex.value = 0
+}
+
+function updateSkillMentionState(): void {
+  const input = inputRef.value
+  if (!input) {
+    closeSkillMention()
+    return
+  }
+  const cursor = input.selectionStart ?? draft.value.length
+  const match = findActiveComposerToken(draft.value, cursor, '$')
+  if (!match) {
+    closeSkillMention()
+    return
+  }
+  skillMentionStartIndex.value = match.start
+  skillMentionQuery.value = match.query
+  skillMentionHighlightedIndex.value = 0
+  isSkillMentionOpen.value = true
+}
+
+function applySkillMention(skill: SkillItem): void {
+  const input = inputRef.value
+  const start = skillMentionStartIndex.value
+  if (start !== null && input) {
+    const cursor = input.selectionStart ?? draft.value.length
+    const before = draft.value.slice(0, start)
+    const after = draft.value.slice(cursor)
+    const normalizedAfter = /\s$/u.test(before) && /^\s/u.test(after) ? after.slice(1) : after
+    draft.value = `${before}${normalizedAfter}`
+  }
+  if (!selectedSkills.value.some((selected) => selected.path === skill.path)) {
+    selectedSkills.value = [...selectedSkills.value, skill]
+  }
+  hasImmediateInputText.value = draft.value.trim().length > 0
+  closeSkillMention()
+  void nextTick(() => {
+    input?.focus()
+    const nextCursor = Math.min(start ?? draft.value.length, draft.value.length)
+    input?.setSelectionRange(nextCursor, nextCursor)
   })
 }
 
@@ -2143,18 +2270,14 @@ function updateFileMentionState(): void {
     return
   }
   const cursor = input.selectionStart ?? draft.value.length
-  const beforeCursor = draft.value.slice(0, cursor)
-  const match = beforeCursor.match(/(^|\s)(@[^\s@]*)$/)
+  const match = findActiveComposerToken(draft.value, cursor, '@')
   if (!match) {
     closeFileMention()
     return
   }
 
-  const mentionToken = match[2] ?? ''
-  const mentionOffset = mentionToken.length
-  const startIndex = cursor - mentionOffset
-  mentionStartIndex.value = startIndex
-  mentionQuery.value = mentionToken.slice(1)
+  mentionStartIndex.value = match.start
+  mentionQuery.value = match.query
   isFileMentionOpen.value = true
   void queueFileMentionSearch()
 }

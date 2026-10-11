@@ -27,8 +27,14 @@
               ref="searchRef"
               v-model="searchQuery"
               class="search-dropdown-search"
-              type="text"
+              type="search"
+              inputmode="search"
+              autocomplete="off"
+              autocapitalize="none"
+              spellcheck="false"
               :placeholder="searchPlaceholder"
+              @input="onSearchInput"
+              @compositionend="onSearchInput"
               @keydown.escape.prevent="isOpen = false"
               @keydown.enter.prevent="selectHighlighted"
               @keydown.arrow-down.prevent="moveHighlight(1)"
@@ -110,6 +116,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useUiLanguage } from '../../composables/useUiLanguage'
 import IconTablerChevronDown from '../icons/IconTablerChevronDown.vue'
+import { filterComposerOptions } from './composerSearch'
 
 export type SearchDropdownOption = {
   value: string
@@ -163,14 +170,14 @@ const displayLabel = computed(() => {
 })
 
 const filtered = computed(() => {
-  const q = searchQuery.value.toLowerCase().trim()
-  if (!q) return props.options
-  return props.options.filter(
-    (o) =>
-      o.label.toLowerCase().includes(q) ||
-      (o.description?.toLowerCase().includes(q) ?? false),
-  )
+  return filterComposerOptions(props.options, searchQuery.value)
 })
+
+function onSearchInput(event: Event): void {
+  if (event.currentTarget instanceof HTMLInputElement) {
+    searchQuery.value = event.currentTarget.value
+  }
+}
 
 function updateMenuPosition(): void {
   const menu = menuRef.value
@@ -214,8 +221,8 @@ function onToggle(): void {
     nextTick(() => {
       nextTick(() => {
         updateMenuPosition()
+        searchRef.value?.focus({ preventScroll: true })
       })
-      searchRef.value?.focus()
     })
   }
 }

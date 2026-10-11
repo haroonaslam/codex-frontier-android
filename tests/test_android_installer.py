@@ -16,6 +16,9 @@ class AndroidInstallerTests(unittest.TestCase):
         self.assertIn("01-bootstrap-termux.sh", script)
         self.assertIn("./install/02-login-codex.sh", script)
         self.assertIn("./install/03-finish-setup.sh", script)
+        self.assertIn("BOOTSTRAP_URL=", script)
+        self.assertIn('curl -fL --retry 3 --output "$temporary_script" "$BOOTSTRAP_URL"', script)
+        self.assertNotIn('if [ -x "$APP_HOME/install/01-bootstrap-termux.sh" ]', script)
         self.assertNotIn("adb ", script)
         self.assertNotIn("powershell", script.lower())
 
@@ -25,7 +28,18 @@ class AndroidInstallerTests(unittest.TestCase):
         self.assertIn('CODEX_VERSION="0.162.1"', script)
         self.assertIn("CODEX_NATIVE_INTEGRITY=", script)
         self.assertIn("npm --prefix vendor/codexapp-frontier-src run build", script)
+        self.assertIn("status --porcelain --untracked-files=all", script)
+        self.assertIn("switch main", script)
         self.assertIn("merge --ff-only origin/main", script)
+        self.assertIn("rev-parse origin/main", script)
+
+    def test_apk_builder_requires_clean_pushed_main(self) -> None:
+        script = self.text("build-tablet-apk.ps1")
+        self.assertIn("branch --show-current", script)
+        self.assertIn("$branch -ne 'main'", script)
+        self.assertIn("status --porcelain --untracked-files=all", script)
+        self.assertIn("fetch origin main", script)
+        self.assertIn("rev-parse origin/main", script)
 
     def test_login_is_isolated_and_hydrates_catalog(self) -> None:
         script = self.text("install/02-login-codex.sh")

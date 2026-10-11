@@ -1,6 +1,22 @@
 $ErrorActionPreference = 'Stop'
 
 $project = $PSScriptRoot
+$branch = (& git -C $project branch --show-current).Trim()
+if ($LASTEXITCODE -ne 0 -or $branch -ne 'main') {
+    throw "APK builds must run from the main branch; current branch: $branch"
+}
+$status = (& git -C $project status --porcelain --untracked-files=all)
+if ($LASTEXITCODE -ne 0 -or $status) {
+    throw 'APK builds require a clean worktree'
+}
+& git -C $project fetch origin main
+if ($LASTEXITCODE -ne 0) { throw 'Unable to fetch origin/main before APK build' }
+$head = (& git -C $project rev-parse HEAD).Trim()
+$originMain = (& git -C $project rev-parse origin/main).Trim()
+if ($LASTEXITCODE -ne 0 -or $head -ne $originMain) {
+    throw 'APK builds require local main to match the pushed origin/main revision'
+}
+
 $sdk = Join-Path $env:LOCALAPPDATA 'Android\Sdk'
 $platformJar = Join-Path $sdk 'platforms\android-35\android.jar'
 $buildTools = Join-Path $sdk 'build-tools\36.1.0'

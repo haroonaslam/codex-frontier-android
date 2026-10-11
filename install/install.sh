@@ -15,16 +15,12 @@ printf '%s\n' \
   "This installs a project-local backend, then asks you to sign into Codex." \
   "No API key, desktop computer, or PRoot distribution is required."
 
-if [ -x "$APP_HOME/install/01-bootstrap-termux.sh" ]; then
-  "$APP_HOME/install/01-bootstrap-termux.sh"
-else
-  command -v curl >/dev/null 2>&1 || {
-    pkg update -y
-    pkg install -y curl
-  }
-  curl -fL --retry 3 --output "$temporary_script" "$BOOTSTRAP_URL"
-  /data/data/com.termux/files/usr/bin/bash "$temporary_script"
-fi
+command -v curl >/dev/null 2>&1 || {
+  pkg update -y
+  pkg install -y curl
+}
+curl -fL --retry 3 --output "$temporary_script" "$BOOTSTRAP_URL"
+/data/data/com.termux/files/usr/bin/bash "$temporary_script"
 
 cd "$APP_HOME"
 ./install/02-login-codex.sh

@@ -248,6 +248,10 @@
                 <span class="sidebar-settings-label">{{ t('Chat width') }}</span>
                 <span class="sidebar-settings-value">{{ chatWidthLabel }}</span>
               </button>
+              <button class="sidebar-settings-row" type="button" title="Edit Frontier instructions, memory, skills, and configuration" @click="openFrontierFiles">
+                <span class="sidebar-settings-label">Frontier files</span>
+                <span class="sidebar-settings-value">Browse & edit</span>
+              </button>
               <button class="sidebar-settings-row" type="button" :title="SETTINGS_HELP.dictationClickToToggle" @click="toggleDictationClickToToggle">
                 <span class="sidebar-settings-label">{{ t('Click to toggle dictation') }}</span>
                 <span class="sidebar-settings-toggle" :class="{ 'is-on': dictationClickToToggle }" />
@@ -1088,6 +1092,7 @@
       </section>
     </template>
   </DesktopLayout>
+  <FrontierFilesPanel v-if="isFrontierFilesOpen" @close="isFrontierFilesOpen = false" />
   <div v-if="projectZipExportStatus.phase !== 'idle'" class="project-zip-modal-backdrop" role="presentation">
     <div class="project-zip-modal" role="dialog" aria-modal="true" :aria-label="t('Export Project')" @click.stop>
       <div class="project-zip-modal-header">
@@ -1212,6 +1217,7 @@ import QueuedMessages from './components/content/QueuedMessages.vue'
 import RateLimitStatus from './components/content/RateLimitStatus.vue'
 import ComposerDropdown from './components/content/ComposerDropdown.vue'
 import ComposerRuntimeDropdown from './components/content/ComposerRuntimeDropdown.vue'
+import FrontierFilesPanel from './components/content/FrontierFilesPanel.vue'
 import SidebarThreadControls from './components/sidebar/SidebarThreadControls.vue'
 import IconTablerBolt from './components/icons/IconTablerBolt.vue'
 import IconTablerSearch from './components/icons/IconTablerSearch.vue'
@@ -1643,6 +1649,7 @@ let threadWorktreeSummaryRequestId = 0
 const defaultNewProjectName = ref('New Project (1)')
 const homeDirectory = ref('')
 const isSettingsOpen = ref(false)
+const isFrontierFilesOpen = ref(false)
 const isDeleteSessionsConfirmationOpen = ref(false)
 const deleteSessionsConfirmation = ref('')
 const isDeletingAllSessions = ref(false)
@@ -3435,6 +3442,11 @@ function onSettingsAreaClick(event: MouseEvent): void {
   if (settingsPanelRef.value?.contains(target)) return
   if (settingsButtonRef.value?.contains(target)) return
   isSettingsOpen.value = false
+}
+
+function openFrontierFiles(): void {
+  isSettingsOpen.value = false
+  isFrontierFilesOpen.value = true
 }
 
 async function onDeleteAllSessions(): Promise<void> {
