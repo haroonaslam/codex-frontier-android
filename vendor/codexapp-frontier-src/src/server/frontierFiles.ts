@@ -2,7 +2,7 @@ import { dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 import { lstat, readFile, readdir, realpath, stat, writeFile } from 'node:fs/promises'
 import { isTextEditableFile } from './localBrowseUi.js'
 
-export type FrontierFileRootId = 'instructions' | 'development' | 'memory' | 'memories' | 'skills' | 'config'
+export type FrontierFileRootId = 'globalInstructions' | 'workspaceInstructions' | 'development' | 'memory' | 'memories' | 'skills' | 'config'
 
 export type FrontierFileRoot = {
   id: FrontierFileRootId
@@ -39,9 +39,16 @@ export function getFrontierFileRoots(codexHomeOverride?: string): FrontierFileRo
     : resolve(termuxHome, 'codex-workspace')
   return [
     {
-      id: 'instructions',
+      id: 'globalInstructions',
+      label: 'Global instructions',
+      description: 'AGENTS.md applied across every project',
+      kind: 'file',
+      path: resolve(codexHome, 'AGENTS.md'),
+    },
+    {
+      id: 'workspaceInstructions',
       label: 'Workspace instructions',
-      description: 'AGENTS.md used by normal Codex chats',
+      description: 'Defaults for the Frontier workspace',
       kind: 'file',
       path: resolve(userWorkspace, 'AGENTS.md'),
     },

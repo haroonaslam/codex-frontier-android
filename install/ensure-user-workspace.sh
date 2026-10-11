@@ -7,6 +7,8 @@ USER_WORKSPACE="$TERMUX_HOME/codex-workspace"
 LEGACY_WORKSPACE="$APP_HOME/workspace"
 INSTRUCTIONS_TEMPLATE="$APP_HOME/runtime-template/workspace/AGENTS.md"
 CODEX_CONFIG="$APP_HOME/runtime/.codex/config.toml"
+GLOBAL_INSTRUCTIONS_TEMPLATE="$APP_HOME/runtime-template/.codex/AGENTS.md"
+GLOBAL_INSTRUCTIONS="$APP_HOME/runtime/.codex/AGENTS.md"
 DEVELOPMENT_TEMPLATE="$APP_HOME/DEVELOPMENT.md"
 EDITABLE_DEVELOPMENT="$APP_HOME/runtime/.codex/DEVELOPMENT.md"
 LEGACY_PROJECT_HEADER='[projects."/data/data/com.termux/files/home/codex-subscription-isolated-app/workspace"]'
@@ -17,6 +19,10 @@ LEGACY_PROJECT_HEADER='[projects."/data/data/com.termux/files/home/codex-subscri
 }
 [ -f "$DEVELOPMENT_TEMPLATE" ] || {
   printf 'WORKSPACE_SETUP_FAILED: missing development reference\n' >&2
+  exit 1
+}
+[ -f "$GLOBAL_INSTRUCTIONS_TEMPLATE" ] || {
+  printf 'WORKSPACE_SETUP_FAILED: missing global instructions template\n' >&2
   exit 1
 }
 
@@ -47,6 +53,10 @@ fi
 
 if [ ! -e "$USER_WORKSPACE/AGENTS.md" ]; then
   cp "$INSTRUCTIONS_TEMPLATE" "$USER_WORKSPACE/AGENTS.md"
+fi
+
+if [ ! -e "$GLOBAL_INSTRUCTIONS" ]; then
+  cp "$GLOBAL_INSTRUCTIONS_TEMPLATE" "$GLOBAL_INSTRUCTIONS"
 fi
 
 # The viewer/editor uses an untracked runtime copy so personal notes never make

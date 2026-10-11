@@ -58,6 +58,7 @@ class AndroidInstallerTests(unittest.TestCase):
         self.assertIn('mv "$LEGACY_WORKSPACE" "$USER_WORKSPACE"', setup)
         self.assertIn('ln -s "$USER_WORKSPACE" "$LEGACY_WORKSPACE"', setup)
         self.assertIn('if [ ! -e "$USER_WORKSPACE/AGENTS.md" ]', setup)
+        self.assertIn('if [ ! -e "$GLOBAL_INSTRUCTIONS" ]', setup)
         self.assertIn('if [ ! -e "$EDITABLE_DEVELOPMENT" ]', setup)
         self.assertIn("personal notes never make", setup)
 

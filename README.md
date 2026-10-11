@@ -43,8 +43,9 @@ inspect-before-running and resumable alternatives.
 - Manual and pull-to-refresh with bounded read-only RPC retry
 - Separate Android package, WebView data, HOME, CODEX_HOME, port, and sessions
 - User projects in `$HOME/codex-workspace`, outside the installed application checkout
-- Settings viewer/editor for normal workspace instructions and an untracked,
-  upgrade-safe copy of the separate Frontier development reference
+- Settings viewer/editor for global cross-project instructions, normal workspace
+  instructions, and an untracked, upgrade-safe copy of the separate Frontier
+  development reference
 
 ## Important installation boundary
 

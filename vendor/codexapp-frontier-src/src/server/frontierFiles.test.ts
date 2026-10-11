@@ -11,6 +11,7 @@ async function fixture(): Promise<string> {
   await mkdir(join(codexHome, 'skills', 'demo'), { recursive: true })
   await mkdir(join(codexHome, 'memory'), { recursive: true })
   await mkdir(join(codexHome, 'memories'), { recursive: true })
+  await writeFile(join(codexHome, 'AGENTS.md'), '# Global instructions\n', 'utf8')
   await mkdir(join(fixtureHome, 'codex-workspace'), { recursive: true })
   await writeFile(join(fixtureHome, 'codex-workspace', 'AGENTS.md'), '# Instructions\n', 'utf8')
   await writeFile(join(codexHome, 'DEVELOPMENT.md'), '# Development\n', 'utf8')
@@ -23,13 +24,17 @@ describe('Frontier file workspace', () => {
   it('exposes only the explicit non-secret roots', async () => {
     const codexHome = await fixture()
     expect(getFrontierFileRoots(codexHome).map((root) => root.id)).toEqual([
-      'instructions', 'development', 'memory', 'memories', 'skills', 'config',
+      'globalInstructions', 'workspaceInstructions', 'development', 'memory', 'memories', 'skills', 'config',
     ])
   })
 
   it('opens and edits both workspace instructions and the development reference', async () => {
     const codexHome = await fixture()
-    expect(await browseFrontierFiles('instructions', '', codexHome)).toMatchObject({
+    expect(await browseFrontierFiles('globalInstructions', '', codexHome)).toMatchObject({
+      kind: 'file',
+      content: '# Global instructions\n',
+    })
+    expect(await browseFrontierFiles('workspaceInstructions', '', codexHome)).toMatchObject({
       kind: 'file',
       content: '# Instructions\n',
     })
@@ -37,10 +42,14 @@ describe('Frontier file workspace', () => {
       kind: 'file',
       content: '# Development\n',
     })
-    await writeFrontierFile('instructions', '', '# User preferences\n', codexHome)
+    await writeFrontierFile('globalInstructions', '', '# Global preferences\n', codexHome)
+    await writeFrontierFile('workspaceInstructions', '', '# Workspace preferences\n', codexHome)
     await writeFrontierFile('development', '', '# Maintenance notes\n', codexHome)
-    expect((await browseFrontierFiles('instructions', '', codexHome))).toMatchObject({
-      content: '# User preferences\n',
+    expect((await browseFrontierFiles('globalInstructions', '', codexHome))).toMatchObject({
+      content: '# Global preferences\n',
+    })
+    expect((await browseFrontierFiles('workspaceInstructions', '', codexHome))).toMatchObject({
+      content: '# Workspace preferences\n',
     })
     expect((await browseFrontierFiles('development', '', codexHome))).toMatchObject({
       content: '# Maintenance notes\n',
