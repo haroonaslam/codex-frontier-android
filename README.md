@@ -10,10 +10,10 @@ project/session storage without PRoot or a permanently running service.
 ## Release
 
 - Android package: `com.michaelovsky.codexsubscription.isolated`
-- Version: `2.8.0-tablet.1` (`versionCode 12`)
+- Version: `2.8.0-tablet.2` (`versionCode 13`)
 - Local UI: `http://127.0.0.1:5902`
-- APK: `Codex-Frontier-2.8.0-tablet.1.apk` in the GitHub release
-- APK SHA-256: `3d2355cd1e5551c381ebc31e4cf69f1a724fa0f7b92ba28986643f6b2b60f71f`
+- APK: `Codex-Frontier-2.8.0-tablet.2.apk` in the GitHub release
+- APK SHA-256: `pending release build`
 - Signing certificate SHA-256: `54771e961ff946d5aff525b313728eccc83aca80c19837484ef47bce76da0db2`
 
 ## Install entirely on Android
@@ -46,6 +46,13 @@ inspect-before-running and resumable alternatives.
 - Settings viewer/editor for global cross-project instructions, normal workspace
   instructions, and an untracked, upgrade-safe copy of the separate Frontier
   development reference
+- Searchable skill picker plus validated ZIP skill imports through Android's
+  standard file picker
+- Configurable external writable folders with protected runtime boundaries
+- Ask, Automatic, and Full agent-access modes, with the safer Ask mode as the
+  fresh-install default
+- Shizuku-backed Android automation skill that returns to Frontier when a task
+  is complete
 
 ## Important installation boundary
 
@@ -69,19 +76,20 @@ in this repository. See [INSTALL.md](INSTALL.md).
 - `build-codex-frontier.sh` — deterministic raw Android build
 - `isolation-preflight.sh` and `verify-codex-frontier.sh` — non-UI safety verification
 
-## Verification performed for 2.8.0-tablet.1
+## Verification performed for 2.8.0-tablet.2
 
 - Native and header refreshes preserve the active route, thread, and composer instead of reloading the WebView.
 - Startup metadata and pending-request calls have bounded read/write deadlines.
 - WebSocket heartbeat, SSE fallback, and race-safe SSE cleanup recover transport failures in place.
 
-- 34 Python/source contract tests passed
-- 167 frontend unit tests passed
+- 46 Python/source contract tests passed
+- 194 frontend unit tests passed
 - Vue TypeScript and production frontend/CLI builds passed
 - APK v1/v2/v3 signature verification passed
-- WebSocket remained healthy across heartbeat, SSE emitted ready, and 32 concurrent RPC reads passed
-- Three cold starts completed in approximately five seconds on the validated tablet
-- The on-demand stop launcher terminated only the verified Frontier process group
+- External writable roots, all three access modes, and approval-free Android
+  automation were exercised on the validated phone
+- Android app launching resolves only exact-package launcher components and
+  returns to Frontier after a completed automation task
 - Protected sibling Android packages remained byte-for-byte unchanged
 
 ## Security and privacy

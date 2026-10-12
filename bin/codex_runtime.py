@@ -3522,6 +3522,7 @@ def privilege_candidates(command):
         candidates.append(("root", ["su", "-c", quoted]))
     for rish in (
         pathlib.Path.home() / ".local/bin/rish",
+        pathlib.Path("/data/data/com.termux/files/home/.local/bin/rish"),
         pathlib.Path("/sdcard/Android/data/moe.shizuku.privileged.api/start.sh"),
     ):
         if rish.exists():
@@ -4100,6 +4101,16 @@ def android_launcher_component(package, context):
         return package + "/.MainActivity", command_result(
             backend="test", simulated=True
         )
+    # Android's resolve-activity command can ignore a trailing package
+    # argument and return an unrelated default launcher. Build the launcher
+    # inventory once and select only the component owned by the exact package.
+    try:
+        components, inventory_result = android_launchable_components(context)
+        component = components.get(package)
+        if component:
+            return component, inventory_result
+    except CommandFailure:
+        pass
     commands = (
         [
             "cmd",

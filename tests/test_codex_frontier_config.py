@@ -16,8 +16,8 @@ class CodexFrontierConfigTests(unittest.TestCase):
         root = ET.parse(ROOT / "AndroidManifest.xml").getroot()
         android = "{http://schemas.android.com/apk/res/android}"
         self.assertEqual(root.attrib["package"], "com.michaelovsky.codexsubscription.isolated")
-        self.assertEqual(root.attrib[android + "versionCode"], "12")
-        self.assertEqual(root.attrib[android + "versionName"], "2.8.0-tablet.1")
+        self.assertEqual(root.attrib[android + "versionCode"], "13")
+        self.assertEqual(root.attrib[android + "versionName"], "2.8.0-tablet.2")
         uses_sdk = root.find("uses-sdk")
         self.assertIsNotNone(uses_sdk)
         self.assertEqual(uses_sdk.attrib[android + "minSdkVersion"], "30")
@@ -97,8 +97,8 @@ class CodexFrontierConfigTests(unittest.TestCase):
     def test_release_manifest_matches_android_manifest(self) -> None:
         release = json.loads(read("release-manifest.json"))
         self.assertEqual(release["packageId"], "com.michaelovsky.codexsubscription.isolated")
-        self.assertEqual(release["versionCode"], 12)
-        self.assertEqual(release["versionName"], "2.8.0-tablet.1")
+        self.assertEqual(release["versionCode"], 13)
+        self.assertEqual(release["versionName"], "2.8.0-tablet.2")
         self.assertEqual(len(release["apk"]["sha256"]), 64)
 
 

@@ -47,6 +47,13 @@ Android will require the user to approve installing an app from Termux. On the
 first app launch, approve the separate Termux command permission. Those Android
 security confirmations cannot and should not be bypassed.
 
+After launch, **Settings → Agent access** selects whether Codex asks before
+commands (`Ask approval`), automatically runs commands inside configured roots
+(`Auto approve`), or has unrestricted local command access (`Full access`). New
+installs retain `Ask approval` until the user explicitly changes it. Use
+**Settings → Frontier files → External folders** to add specific shared-storage
+folders without granting the whole Termux home or Frontier runtime.
+
 If OpenAI reports that device-code login is disabled, enable it in ChatGPT
 Security Settings and rerun:
 
@@ -70,10 +77,19 @@ cd "$HOME/codex-subscription-isolated-app"
 The account credential is created only on the user's device under
 `runtime/.codex`. It is excluded from Git and from the APK.
 
+## Optional Android automation
+
+The installer includes the `android-device` skill and local `codex-android`
+command links. Screen and app automation additionally requires Shizuku to be
+running and its `rish` launcher to be installed at `$HOME/.local/bin/rish` with
+Termux authorized in Shizuku. These elevated capabilities are not enabled or
+granted silently by the installer. Without them, normal Codex chat, coding,
+skills, files, and live voice continue to work.
+
 ## Existing configured device
 
 An APK-only update is sufficient when the matching Termux backend is already
-installed. Download `Codex-Frontier-2.8.0-tablet.1.apk` from the GitHub Release,
+installed. Download `Codex-Frontier-2.8.0-tablet.2.apk` from the GitHub Release,
 open it, and approve the Android update. App data, Codex login, conversations,
 the external `$HOME/codex-workspace`, and skills remain in place. On the first
 upgrade from an older release, the installer moves the former in-repository

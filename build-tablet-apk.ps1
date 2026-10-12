@@ -40,7 +40,7 @@ $dist = Join-Path $project 'dist'
 $keystore = Join-Path $build 'codex-frontier-tablet.keystore'
 $passwordFile = Join-Path $build 'keystore-password.txt'
 $work = Join-Path $build 'compile'
-$output = Join-Path $dist 'Codex-Frontier-2.8.0-tablet.1.apk'
+$output = Join-Path $dist 'Codex-Frontier-2.8.0-tablet.2.apk'
 
 New-Item -ItemType Directory -Force -Path $build, $dist | Out-Null
 if (-not (Test-Path $passwordFile)) {

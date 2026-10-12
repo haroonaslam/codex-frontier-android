@@ -1,3 +1,6 @@
+import { listFrontierWritableRootPathsSync } from './frontierWritableRoots.js'
+import { readFrontierAccessSettingsSync } from './frontierAccess.js'
+
 const SANDBOX_MODES = new Set([
   'read-only',
   'workspace-write',
@@ -58,16 +61,17 @@ function readMemoriesFromEnv(): boolean {
 }
 
 export function resolveAppServerRuntimeConfig(): AppServerRuntimeConfig {
+  const access = readFrontierAccessSettingsSync()
   return {
-    sandboxMode: readSandboxModeFromEnv(),
-    approvalPolicy: readApprovalPolicyFromEnv(),
+    sandboxMode: access.configured ? access.sandboxMode : readSandboxModeFromEnv(),
+    approvalPolicy: access.configured ? access.approvalPolicy : readApprovalPolicyFromEnv(),
     memories: readMemoriesFromEnv(),
   }
 }
 
 export function buildAppServerArgs(): string[] {
   const config = resolveAppServerRuntimeConfig()
-  return [
+  const args = [
     'app-server',
     '-c',
     `approval_policy="${config.approvalPolicy}"`,
@@ -76,6 +80,11 @@ export function buildAppServerArgs(): string[] {
     '-c',
     `features.memories=${config.memories ? 'true' : 'false'}`,
   ]
+  const writableRoots = listFrontierWritableRootPathsSync()
+  if (writableRoots.length > 0) {
+    args.push('-c', `sandbox_workspace_write.writable_roots=${JSON.stringify(writableRoots)}`)
+  }
+  return args
 }
 
 export function parseSandboxMode(value: string): CodexSandboxMode | null {

@@ -10,6 +10,8 @@ CODEX_CONFIG="$APP_HOME/runtime/.codex/config.toml"
 GLOBAL_INSTRUCTIONS_TEMPLATE="$APP_HOME/runtime-template/.codex/AGENTS.md"
 GLOBAL_INSTRUCTIONS="$APP_HOME/runtime/.codex/skills/AGENTS.md"
 GLOBAL_INSTRUCTIONS_LINK="$APP_HOME/runtime/.codex/AGENTS.md"
+ANDROID_SKILL_TEMPLATE="$APP_HOME/runtime-template/.codex/skills/android-device"
+ANDROID_SKILL="$APP_HOME/runtime/.codex/skills/android-device"
 DEVELOPMENT_TEMPLATE="$APP_HOME/DEVELOPMENT.md"
 EDITABLE_DEVELOPMENT="$APP_HOME/runtime/.codex/DEVELOPMENT.md"
 LEGACY_PROJECT_HEADER='[projects."/data/data/com.termux/files/home/codex-subscription-isolated-app/workspace"]'
@@ -65,6 +67,10 @@ if [ ! -s "$GLOBAL_INSTRUCTIONS" ]; then
 fi
 if [ ! -e "$GLOBAL_INSTRUCTIONS_LINK" ] && [ ! -L "$GLOBAL_INSTRUCTIONS_LINK" ]; then
   ln -s "skills/AGENTS.md" "$GLOBAL_INSTRUCTIONS_LINK"
+fi
+
+if [ -d "$ANDROID_SKILL_TEMPLATE" ] && [ ! -e "$ANDROID_SKILL" ]; then
+  cp -a "$ANDROID_SKILL_TEMPLATE" "$ANDROID_SKILL"
 fi
 
 # The viewer/editor uses an untracked runtime copy so personal notes never make

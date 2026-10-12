@@ -55,6 +55,8 @@ class AndroidInstallerTests(unittest.TestCase):
         bootstrap = self.text("install/01-bootstrap-termux.sh")
         setup = self.text("install/ensure-user-workspace.sh")
         self.assertIn("install/ensure-user-workspace.sh", bootstrap)
+        self.assertIn("install/ensure-capability-links.sh", bootstrap)
+        self.assertIn("bash ./install/ensure-capability-links.sh", bootstrap)
         self.assertIn('mv "$LEGACY_WORKSPACE" "$USER_WORKSPACE"', setup)
         self.assertIn('ln -s "$USER_WORKSPACE" "$LEGACY_WORKSPACE"', setup)
         self.assertIn('if [ ! -e "$USER_WORKSPACE/AGENTS.md" ]', setup)
@@ -64,6 +66,14 @@ class AndroidInstallerTests(unittest.TestCase):
         self.assertIn('ln -s "skills/AGENTS.md" "$GLOBAL_INSTRUCTIONS_LINK"', setup)
         self.assertIn('if [ ! -e "$EDITABLE_DEVELOPMENT" ]', setup)
         self.assertIn("personal notes never make", setup)
+        self.assertIn('ANDROID_SKILL_TEMPLATE="$APP_HOME/runtime-template/.codex/skills/android-device"', setup)
+        self.assertIn('cp -a "$ANDROID_SKILL_TEMPLATE" "$ANDROID_SKILL"', setup)
+
+    def test_android_automation_commands_are_installed_without_overwriting(self) -> None:
+        script = self.text("install/ensure-capability-links.sh")
+        self.assertIn("codex-android", script)
+        self.assertIn('ln -s codex_runtime.py "$destination"', script)
+        self.assertIn("refusing to replace", script)
 
     def test_finish_downloads_verifies_and_opens_apk_on_android(self) -> None:
         script = self.text("install/03-finish-setup.sh")
@@ -78,7 +88,7 @@ class AndroidInstallerTests(unittest.TestCase):
     def test_release_manifest_matches_local_apk_when_present(self) -> None:
         manifest = json.loads(self.text("release-manifest.json"))
         self.assertEqual(manifest["packageId"], "com.michaelovsky.codexsubscription.isolated")
-        self.assertEqual(manifest["versionName"], "2.8.0-tablet.1")
+        self.assertEqual(manifest["versionName"], "2.8.0-tablet.2")
         self.assertEqual(manifest["codexCliVersion"], "0.162.1")
         apk = ROOT / "dist" / manifest["apk"]["asset"]
         if apk.is_file():

@@ -86,12 +86,14 @@ chmod 755 \
   install/01-bootstrap-termux.sh \
   install/02-login-codex.sh \
   install/03-finish-setup.sh \
+  install/ensure-capability-links.sh \
   install/ensure-user-workspace.sh \
   install/install.sh \
   isolation-preflight.sh \
   verify-codex-frontier.sh
 
 ./install/ensure-user-workspace.sh
+bash ./install/ensure-capability-links.sh
 mkdir -p runtime/.codex runtime/home "$HOME/.termux"
 if [ ! -f runtime/.codex/config.toml ]; then
   cp runtime-template/.codex/config.toml runtime/.codex/config.toml

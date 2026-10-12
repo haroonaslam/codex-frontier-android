@@ -17,7 +17,7 @@ if ($LASTEXITCODE -ne 0) { throw 'APK alignment verification failed' }
 if ($LASTEXITCODE -ne 0) { throw 'APK signature verification failed' }
 $badging = & $aapt dump badging $ApkPath
 if ($LASTEXITCODE -ne 0) { throw 'APK metadata inspection failed' }
-$expected = "package: name='com.michaelovsky.codexsubscription.isolated' versionCode='12' versionName='2.8.0-tablet.1'"
+$expected = "package: name='com.michaelovsky.codexsubscription.isolated' versionCode='13' versionName='2.8.0-tablet.2'"
 if (-not ($badging -like "$expected*")) { throw 'Unexpected APK identity or version' }
 
 $manifest = Get-Content (Join-Path $PSScriptRoot 'AndroidManifest.xml') -Raw

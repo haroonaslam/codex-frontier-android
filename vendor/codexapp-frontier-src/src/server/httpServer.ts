@@ -8,6 +8,14 @@ import { createCodexBridgeMiddleware } from './codexAppServerBridge.js'
 import { createAuthSession } from './authMiddleware.js'
 import { createDirectoryListingHtml, createTextEditorHtml, decodeBrowsePath, getLocalDirectoryListing, isTextEditableFile, normalizeLocalPath } from './localBrowseUi.js'
 import { browseFrontierFiles, getFrontierFileRoots, importSkillsZip, MAX_SKILL_ZIP_BYTES, writeFrontierFile } from './frontierFiles.js'
+import {
+  addFrontierWritableRoot,
+  browseFrontierRootFolders,
+  listFrontierWritableRoots,
+  removeFrontierWritableRoot,
+  suggestedFrontierRootPaths,
+} from './frontierWritableRoots.js'
+import { readFrontierAccessSettingsSync, writeFrontierAccessMode } from './frontierAccess.js'
 import { WebSocketServer, type WebSocket } from 'ws'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -270,6 +278,64 @@ export function createServer(options: ServerOptions = {}): ServerInstance {
       }
     },
   )
+
+  app.get('/frontier-roots-api', async (req, res) => {
+    const browsePath = typeof req.query.path === 'string' ? req.query.path : ''
+    try {
+      if (browsePath || req.query.browse === '1') {
+        res.status(200).json(await browseFrontierRootFolders(browsePath))
+        return
+      }
+      res.status(200).json({
+        entries: await listFrontierWritableRoots(),
+        suggestions: suggestedFrontierRootPaths(),
+      })
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Unable to read writable roots.' })
+    }
+  })
+
+  app.post('/frontier-roots-api', express.json({ limit: '32kb' }), async (req, res) => {
+    const body = req.body && typeof req.body === 'object' ? req.body as Record<string, unknown> : {}
+    const path = typeof body.path === 'string' ? body.path : ''
+    if (!path) {
+      res.status(400).json({ error: 'Choose a folder to add.' })
+      return
+    }
+    try {
+      res.status(201).json({ ok: true, entries: await addFrontierWritableRoot(path), restartRequired: true })
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Unable to add the writable root.' })
+    }
+  })
+
+  app.delete('/frontier-roots-api', express.json({ limit: '32kb' }), async (req, res) => {
+    const body = req.body && typeof req.body === 'object' ? req.body as Record<string, unknown> : {}
+    const path = typeof body.path === 'string' ? body.path : ''
+    if (!path) {
+      res.status(400).json({ error: 'Choose a configured root to remove.' })
+      return
+    }
+    try {
+      res.status(200).json({ ok: true, entries: await removeFrontierWritableRoot(path), restartRequired: true })
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Unable to remove the writable root.' })
+    }
+  })
+
+  app.get('/frontier-access-api', (_req, res) => {
+    res.status(200).json(readFrontierAccessSettingsSync())
+  })
+
+  app.put('/frontier-access-api', express.json({ limit: '8kb' }), async (req, res) => {
+    const body = req.body && typeof req.body === 'object' ? req.body as Record<string, unknown> : {}
+    const mode = typeof body.mode === 'string' ? body.mode : ''
+    try {
+      res.status(200).json({ ok: true, ...(await writeFrontierAccessMode(mode)) })
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Unable to change agent access.' })
+    }
+  })
 
   const hasFrontendAssets = existsSync(spaEntryFile)
 

@@ -17,6 +17,7 @@ LOCK_FILE="$RUN_DIR/start.lock"
 STATE_FILE="$RUN_DIR/runtime-state.json"
 
 export PATH="$APP_HOME/bin:$LOCAL_CODEX_BIN:/data/data/com.termux/files/usr/bin:$TERMUX_HOME/.local/bin:$PATH"
+export RISH_APPLICATION_ID="com.termux"
 
 mkdir -p "$LOG_DIR" "$RUN_DIR"
 exec >> "$LOG_DIR/launcher.log" 2>&1
@@ -74,6 +75,7 @@ terminate_owned_runtime() {
 }
 
 "$APP_HOME/install/ensure-user-workspace.sh"
+bash "$APP_HOME/install/ensure-capability-links.sh"
 "$APP_HOME/isolation-preflight.sh"
 mkdir -p \
   "$ISOLATED_CODEX_ROOT/archived_sessions" \

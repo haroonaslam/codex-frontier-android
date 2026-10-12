@@ -14,8 +14,8 @@ def text(path):
 class TabletVariantTests(unittest.TestCase):
     def test_on_demand_manifest_has_start_and_stop_launchers_only(self):
         root = ET.fromstring(text("AndroidManifest.xml"))
-        self.assertEqual(root.attrib[ANDROID + "versionCode"], "12")
-        self.assertEqual(root.attrib[ANDROID + "versionName"], "2.8.0-tablet.1")
+        self.assertEqual(root.attrib[ANDROID + "versionCode"], "13")
+        self.assertEqual(root.attrib[ANDROID + "versionName"], "2.8.0-tablet.2")
         application = root.find("application")
         names = {node.attrib[ANDROID + "name"] for node in application.findall("activity")}
         self.assertEqual(names, {".MainActivity", ".StopActivity"})

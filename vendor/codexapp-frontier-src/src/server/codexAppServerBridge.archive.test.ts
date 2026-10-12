@@ -409,7 +409,9 @@ describe('ensureDefaultFreeModeStateForMissingAuthSync', () => {
 
       const info = await stat(statePath)
       expect(info.isFile()).toBe(true)
-      expect(info.mode & 0o777).toBe(0o600)
+      if (process.platform !== 'win32') {
+        expect(info.mode & 0o777).toBe(0o600)
+      }
     } finally {
       await rm(codexHome, { recursive: true, force: true })
     }

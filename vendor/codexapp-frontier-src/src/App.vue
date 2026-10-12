@@ -248,6 +248,21 @@
                 <span class="sidebar-settings-label">{{ t('Chat width') }}</span>
                 <span class="sidebar-settings-value">{{ chatWidthLabel }}</span>
               </button>
+              <div class="sidebar-settings-row sidebar-settings-row--select" title="Choose when Codex asks before running commands and how broadly it can access this device.">
+                <span class="sidebar-settings-label">Agent access</span>
+                <ComposerDropdown
+                  class="sidebar-settings-provider-dropdown"
+                  :model-value="frontierAccessMode"
+                  :options="frontierAccessOptions"
+                  placeholder="Ask approval"
+                  :disabled="frontierAccessLoading || frontierAccessSaving"
+                  menu-align="end"
+                  @update:model-value="onFrontierAccessModeChange"
+                />
+              </div>
+              <div v-if="frontierAccessError" class="sidebar-settings-row sidebar-settings-error">
+                <span>{{ frontierAccessError }}</span>
+              </div>
               <button class="sidebar-settings-row" type="button" title="Edit Frontier instructions, memory, skills, and configuration" @click="openFrontierFiles">
                 <span class="sidebar-settings-label">Frontier files</span>
                 <span class="sidebar-settings-value">Browse & edit</span>
@@ -1702,6 +1717,8 @@ const DICTATION_AUTO_SEND_KEY = 'codex-web-local.dictation-auto-send.v1'
 const DICTATION_LANGUAGE_KEY = 'codex-web-local.dictation-language.v1'
 const REALTIME_VOICE_KEY = 'codex-web-local.realtime-voice.v1'
 
+type FrontierAccessMode = 'ask' | 'automatic' | 'full'
+
 const CHAT_WIDTH_KEY = 'codex-web-local.chat-width.v1'
 const MOBILE_RESUME_RELOAD_MIN_HIDDEN_MS = 5_000
 const sendWithEnter = ref(loadBoolPref(SEND_WITH_ENTER_KEY, true))
@@ -1717,6 +1734,15 @@ const realtimeVoiceOptions = REALTIME_VOICES.map((voice) => ({
   value: voice,
   label: voice.charAt(0).toUpperCase() + voice.slice(1),
 }))
+const frontierAccessMode = ref<FrontierAccessMode>('ask')
+const frontierAccessLoading = ref(false)
+const frontierAccessSaving = ref(false)
+const frontierAccessError = ref('')
+const frontierAccessOptions = [
+  { value: 'ask', label: 'Ask approval' },
+  { value: 'automatic', label: 'Auto approve' },
+  { value: 'full', label: 'Full access' },
+]
 const projectZipProgressText = computed(() => {
   const { loaded, total } = projectZipExportStatus.value
   const loadedLabel = formatByteCount(loaded)
@@ -2237,6 +2263,7 @@ onMounted(() => {
   void refreshTelegramConfig()
   void refreshTelegramStatus()
   void loadFreeModeStatus()
+  void loadFrontierAccessMode()
   void refreshThreadTerminalStatus()
   void refreshTerminalQuickCommands()
 })
@@ -4588,6 +4615,53 @@ async function clearFreeModeCustomKey(): Promise<void> {
     // Silently fail
   } finally {
     freeModeCustomKeySaving.value = false
+  }
+}
+
+function isFrontierAccessMode(value: unknown): value is FrontierAccessMode {
+  return value === 'ask' || value === 'automatic' || value === 'full'
+}
+
+async function loadFrontierAccessMode(): Promise<void> {
+  if (frontierAccessLoading.value) return
+  frontierAccessLoading.value = true
+  try {
+    frontierAccessError.value = ''
+    const response = await fetch('/frontier-access-api', { cache: 'no-store' })
+    const payload = await response.json() as { mode?: unknown; error?: string }
+    if (!response.ok) throw new Error(payload.error || 'Unable to read agent access.')
+    if (isFrontierAccessMode(payload.mode)) frontierAccessMode.value = payload.mode
+  } catch (error) {
+    frontierAccessError.value = error instanceof Error ? error.message : 'Unable to read agent access.'
+  } finally {
+    frontierAccessLoading.value = false
+  }
+}
+
+async function onFrontierAccessModeChange(value: string): Promise<void> {
+  if (!isFrontierAccessMode(value) || frontierAccessSaving.value) return
+  if (value === 'full' && frontierAccessMode.value !== 'full') {
+    const accepted = window.confirm('Full access lets Codex run commands and control this Android device without approval prompts. Continue?')
+    if (!accepted) return
+  }
+  const previousMode = frontierAccessMode.value
+  frontierAccessSaving.value = true
+  frontierAccessMode.value = value
+  try {
+    frontierAccessError.value = ''
+    const response = await fetch('/frontier-access-api', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: value }),
+    })
+    const payload = await response.json() as { mode?: unknown; error?: string }
+    if (!response.ok) throw new Error(payload.error || 'Unable to change agent access.')
+    if (isFrontierAccessMode(payload.mode)) frontierAccessMode.value = payload.mode
+  } catch (error) {
+    frontierAccessMode.value = previousMode
+    frontierAccessError.value = error instanceof Error ? error.message : 'Unable to change agent access.'
+  } finally {
+    frontierAccessSaving.value = false
   }
 }
 
