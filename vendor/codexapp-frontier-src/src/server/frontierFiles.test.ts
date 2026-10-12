@@ -2,7 +2,8 @@ import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { browseFrontierFiles, getFrontierFileRoots, writeFrontierFile } from './frontierFiles'
+import AdmZip from 'adm-zip'
+import { browseFrontierFiles, getFrontierFileRoots, importSkillsZip, writeFrontierFile } from './frontierFiles'
 
 async function fixture(): Promise<string> {
   const fixtureHome = await mkdtemp(join(tmpdir(), 'frontier-files-'))
@@ -69,5 +70,45 @@ describe('Frontier file workspace', () => {
   it('rejects traversal outside a directory root', async () => {
     const codexHome = await fixture()
     await expect(browseFrontierFiles('skills', '../auth.json', codexHome)).rejects.toThrow(/outside/u)
+  })
+
+  it('imports rootless and wrapped skills using the SKILL.md name', async () => {
+    const codexHome = await fixture()
+    const zip = new AdmZip()
+    zip.addFile('SKILL.md', Buffer.from('---\nname: rootless-skill\ndescription: Test\n---\n# Rootless\n'))
+    zip.addFile('scripts/run.sh', Buffer.from('#!/bin/sh\n'))
+    await expect(importSkillsZip(zip.toBuffer(), codexHome)).resolves.toEqual({ installed: ['rootless-skill'] })
+    expect(await readFile(join(codexHome, 'skills', 'rootless-skill', 'scripts', 'run.sh'), 'utf8')).toBe('#!/bin/sh\n')
+
+    const wrappedZip = new AdmZip()
+    wrappedZip.addFile('downloaded-repo/skills/example/SKILL.md', Buffer.from('---\nname: imported-example\ndescription: Test\n---\n# Wrapped\n'))
+    wrappedZip.addFile('downloaded-repo/skills/example/references/info.md', Buffer.from('reference\n'))
+    await expect(importSkillsZip(wrappedZip.toBuffer(), codexHome)).resolves.toEqual({ installed: ['imported-example'] })
+    expect(await readFile(join(codexHome, 'skills', 'imported-example', 'references', 'info.md'), 'utf8')).toBe('reference\n')
+  })
+
+  it('imports several independent skill folders from one ZIP', async () => {
+    const codexHome = await fixture()
+    const zip = new AdmZip()
+    zip.addFile('bundle/alpha/SKILL.md', Buffer.from('---\nname: alpha\ndescription: Test\n---\n'))
+    zip.addFile('bundle/beta/SKILL.md', Buffer.from('---\nname: beta\ndescription: Test\n---\n'))
+    await expect(importSkillsZip(zip.toBuffer(), codexHome)).resolves.toEqual({ installed: ['alpha', 'beta'] })
+  })
+
+  it('rejects unsafe, invalid, nested, and existing skill imports', async () => {
+    const codexHome = await fixture()
+
+    const missingName = new AdmZip()
+    missingName.addFile('SKILL.md', Buffer.from('---\ndescription: Missing name\n---\n'))
+    await expect(importSkillsZip(missingName.toBuffer(), codexHome)).rejects.toThrow(/missing.*name/iu)
+
+    const nested = new AdmZip()
+    nested.addFile('SKILL.md', Buffer.from('---\nname: parent\ndescription: Parent\n---\n'))
+    nested.addFile('child/SKILL.md', Buffer.from('---\nname: child\ndescription: Child\n---\n'))
+    await expect(importSkillsZip(nested.toBuffer(), codexHome)).rejects.toThrow(/nested/iu)
+
+    const existing = new AdmZip()
+    existing.addFile('SKILL.md', Buffer.from('---\nname: demo\ndescription: Existing\n---\n'))
+    await expect(importSkillsZip(existing.toBuffer(), codexHome)).rejects.toThrow(/already installed/iu)
   })
 })

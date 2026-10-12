@@ -1092,7 +1092,7 @@
       </section>
     </template>
   </DesktopLayout>
-  <FrontierFilesPanel v-if="isFrontierFilesOpen" @close="isFrontierFilesOpen = false" />
+  <FrontierFilesPanel v-if="isFrontierFilesOpen" @close="isFrontierFilesOpen = false" @skills-changed="onSkillsChanged" />
   <div v-if="projectZipExportStatus.phase !== 'idle'" class="project-zip-modal-backdrop" role="presentation">
     <div class="project-zip-modal" role="dialog" aria-modal="true" :aria-label="t('Export Project')" @click.stop>
       <div class="project-zip-modal-header">

@@ -28,9 +28,19 @@
             <button v-if="selectedRoot" type="button" @click="goBack">← Back</button>
             <span class="frontier-files-location">{{ locationLabel }}</span>
             <span v-if="statusText" class="frontier-files-toolbar-status" role="status">{{ statusText }}</span>
+            <button
+              v-if="selectedRoot?.id === 'skills'"
+              type="button"
+              class="is-primary"
+              :disabled="isImporting"
+              @click="chooseSkillZip"
+            >
+              {{ isImporting ? 'Importing…' : 'Import ZIP' }}
+            </button>
             <button v-if="view?.kind === 'file'" type="button" class="is-primary" :disabled="isSaving" @click="saveFile">
               {{ isSaving ? 'Saving…' : 'Save' }}
             </button>
+            <input ref="skillZipInput" class="frontier-files-hidden-input" type="file" accept=".zip,application/zip,application/x-zip-compressed" @change="importSkillZip">
           </div>
 
           <p v-if="errorText" class="frontier-files-error" role="alert">{{ errorText }}</p>
@@ -76,13 +86,15 @@ type Entry = { name: string; path: string; isDirectory: boolean; editable: boole
 type DirectoryView = { kind: 'directory'; path: string; entries: Entry[] }
 type FileView = { kind: 'file'; path: string; content: string }
 
-const emit = defineEmits<{ close: [] }>()
+const emit = defineEmits<{ close: []; skillsChanged: [] }>()
 const roots = ref<Root[]>([])
 const selectedRoot = ref<Root | null>(null)
 const view = ref<DirectoryView | FileView | null>(null)
 const editorContent = ref('')
 const isLoading = ref(false)
 const isSaving = ref(false)
+const isImporting = ref(false)
+const skillZipInput = ref<HTMLInputElement | null>(null)
 const errorText = ref('')
 const statusText = ref('')
 
@@ -156,6 +168,43 @@ async function saveFile(): Promise<void> {
   }
 }
 
+function chooseSkillZip(): void {
+  skillZipInput.value?.click()
+}
+
+async function importSkillZip(event: Event): Promise<void> {
+  const input = event.currentTarget as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file || !selectedRoot.value) return
+  isImporting.value = true
+  errorText.value = ''
+  statusText.value = 'Importing skill ZIP…'
+  try {
+    const response = await fetch('/frontier-files-api/skills/import-zip', {
+      method: 'POST',
+      headers: { 'Content-Type': file.type || 'application/zip' },
+      body: file,
+    })
+    const payload = await response.json() as { ok?: boolean; installed?: string[]; error?: string }
+    if (!response.ok || !payload.ok) throw new Error(payload.error || 'Skill ZIP import failed.')
+    const installed = payload.installed ?? []
+    statusText.value = installed.length === 1
+      ? `Installed ${installed[0]}`
+      : `Installed ${installed.length} skills: ${installed.join(', ')}`
+    await fetchView(selectedRoot.value)
+    statusText.value = installed.length === 1
+      ? `Installed ${installed[0]}`
+      : `Installed ${installed.length} skills: ${installed.join(', ')}`
+    emit('skillsChanged')
+  } catch (error) {
+    errorText.value = error instanceof Error ? error.message : 'Skill ZIP import failed.'
+    statusText.value = ''
+  } finally {
+    isImporting.value = false
+  }
+}
+
 onMounted(async () => {
   isLoading.value = true
   try {
@@ -188,7 +237,7 @@ onMounted(async () => {
 .frontier-files-roots span { @apply mt-0.5 text-xs text-zinc-500; }
 .frontier-files-workspace { @apply flex min-h-0 min-w-0 flex-col; }
 .frontier-files-toolbar { @apply flex min-h-12 items-center gap-2 border-b border-zinc-200 px-3; }
-.frontier-files-toolbar button { @apply rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm hover:bg-zinc-50 disabled:opacity-50; }
+.frontier-files-toolbar button { @apply whitespace-nowrap rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm hover:bg-zinc-50 disabled:opacity-50; }
 .frontier-files-toolbar button.is-primary { @apply border-blue-600 bg-blue-600 text-white hover:bg-blue-700; }
 .frontier-files-location { @apply min-w-0 flex-1 truncate text-sm text-zinc-600; }
 .frontier-files-toolbar-status { @apply shrink-0 text-sm text-zinc-500; }
@@ -196,6 +245,7 @@ onMounted(async () => {
 .frontier-files-list button { @apply flex min-h-11 items-center gap-2 rounded-lg border-0 bg-transparent px-3 text-left text-sm hover:bg-zinc-100 disabled:text-zinc-400; }
 .frontier-files-list small { @apply ml-auto text-xs text-zinc-400; }
 .frontier-files-entry-icon { @apply w-5 text-center text-zinc-500; }
+.frontier-files-hidden-input { @apply hidden; }
 .frontier-files-editor { @apply min-h-0 flex-1 resize-none border-0 bg-zinc-950 p-4 font-mono text-[13px] leading-5 text-zinc-100 outline-none; }
 .frontier-files-intro { @apply flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center text-zinc-500; }
 .frontier-files-intro strong { @apply text-zinc-800; }
@@ -226,5 +276,6 @@ onMounted(async () => {
   .frontier-files-body { @apply grid-cols-1 grid-rows-[auto_minmax(0,1fr)]; }
   .frontier-files-roots { @apply flex-row overflow-x-auto border-b border-r-0 p-2; }
   .frontier-files-roots button { @apply min-w-36 shrink-0; }
+  .frontier-files-toolbar-status { @apply hidden; }
 }
 </style>

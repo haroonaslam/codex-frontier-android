@@ -7,7 +7,7 @@ import express, { type Express } from 'express'
 import { createCodexBridgeMiddleware } from './codexAppServerBridge.js'
 import { createAuthSession } from './authMiddleware.js'
 import { createDirectoryListingHtml, createTextEditorHtml, decodeBrowsePath, getLocalDirectoryListing, isTextEditableFile, normalizeLocalPath } from './localBrowseUi.js'
-import { browseFrontierFiles, getFrontierFileRoots, writeFrontierFile } from './frontierFiles.js'
+import { browseFrontierFiles, getFrontierFileRoots, importSkillsZip, MAX_SKILL_ZIP_BYTES, writeFrontierFile } from './frontierFiles.js'
 import { WebSocketServer, type WebSocket } from 'ws'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -250,6 +250,26 @@ export function createServer(options: ServerOptions = {}): ServerInstance {
       res.status(400).json({ error: error instanceof Error ? error.message : 'Unable to save Frontier file.' })
     }
   })
+
+  app.post(
+    '/frontier-files-api/skills/import-zip',
+    express.raw({
+      type: ['application/zip', 'application/x-zip-compressed', 'application/octet-stream'],
+      limit: MAX_SKILL_ZIP_BYTES,
+    }),
+    async (req, res) => {
+      if (!Buffer.isBuffer(req.body)) {
+        res.status(415).json({ error: 'Expected a ZIP file upload.' })
+        return
+      }
+      try {
+        const result = await importSkillsZip(req.body)
+        res.status(201).json({ ok: true, ...result })
+      } catch (error) {
+        res.status(400).json({ error: error instanceof Error ? error.message : 'Unable to import the skill ZIP.' })
+      }
+    },
+  )
 
   const hasFrontendAssets = existsSync(spaEntryFile)
 
