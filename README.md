@@ -13,7 +13,7 @@ project/session storage without PRoot or a permanently running service.
 - Version: `2.8.0-tablet.2` (`versionCode 13`)
 - Local UI: `http://127.0.0.1:5902`
 - APK: `Codex-Frontier-2.8.0-tablet.2.apk` in the GitHub release
-- APK SHA-256: `pending release build`
+- APK SHA-256: `1f727035bcfa32c8083e22677e97b94aa5d664e5999775afc79a3cf9734b6111`
 - Signing certificate SHA-256: `54771e961ff946d5aff525b313728eccc83aca80c19837484ef47bce76da0db2`
 
 ## Install entirely on Android
@@ -85,7 +85,7 @@ in this repository. See [INSTALL.md](INSTALL.md).
 - 46 Python/source contract tests passed
 - 194 frontend unit tests passed
 - Vue TypeScript and production frontend/CLI builds passed
-- APK v1/v2/v3 signature verification passed
+- APK alignment, package identity, and v3 signature verification passed
 - External writable roots, all three access modes, and approval-free Android
   automation were exercised on the validated phone
 - Android app launching resolves only exact-package launcher components and
